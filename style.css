@@ -1,0 +1,468 @@
+/* --- BIẾN CSS & CẤU HÌNH GIAO DIỆN APPLE --- */
+:root {
+    --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --transition-smooth: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    
+    /* Giao diện mặc định (Sáng) */
+    --bg-gradient: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+    --glass-bg: rgba(255, 255, 255, 0.4);
+    --glass-border: rgba(255, 255, 255, 0.5);
+    --text-primary: #1d1d1f;
+    --text-secondary: #86868b;
+    --accent-color: #0071e3;
+    --shadow-color: rgba(0, 0, 0, 0.08);
+}
+
+/* Các Theme tương ứng theo thời gian */
+html[data-theme="morning"] {
+    --bg-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    --glass-bg: rgba(255, 255, 255, 0.45);
+    --text-primary: #2c1a11;
+}
+
+html[data-theme="afternoon"] {
+    --bg-gradient: linear-gradient(135deg, #b3e5fc 0%, #ffcc80 100%);
+    --glass-bg: rgba(255, 255, 255, 0.4);
+    --text-primary: #1c2833;
+}
+
+html[data-theme="evening"] {
+    --bg-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+    --glass-bg: rgba(15, 32, 39, 0.5);
+    --glass-border: rgba(255, 255, 255, 0.15);
+    --text-primary: #f5f5f7;
+    --text-secondary: #a1a1a6;
+    --accent-color: #2997ff;
+    --shadow-color: rgba(0, 0, 0, 0.4);
+}
+
+/* --- TOÀN CỤC --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-stack);
+    background: var(--bg-gradient);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: var(--transition-smooth);
+}
+
+/* --- HIỆU ỨNG GLASSMORPHISM (APPLE TRANSLUCENCY) --- */
+.glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px 0 var(--shadow-color);
+    transition: var(--transition-smooth);
+}
+
+.glass-header {
+    background: var(--glass-bg);
+    backdrop-filter: saturate(180%) blur(25px);
+    -webkit-backdrop-filter: saturate(180%) blur(25px);
+    border-bottom: 1px solid var(--glass-border);
+    box-shadow: 0 1px 0 0 var(--shadow-color);
+}
+
+/* --- ĐIỀU HƯỚNG MÀN HÌNH --- */
+.screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(1.02);
+    transition: var(--transition-smooth);
+    z-index: 1;
+}
+
+.screen.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1);
+    z-index: 10;
+}
+
+/* --- MÀN HÌNH CHÀO MƯỜNG --- */
+#welcome-screen {
+    justify-content: center;
+    align-items: center;
+}
+
+.welcome-card {
+    padding: 3rem;
+    max-width: 500px;
+    width: 90%;
+    text-align: center;
+    animation: floatingCard 6s ease-in-out infinite;
+}
+
+#greeting-text {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    letter-spacing: -0.022em; /* Tracking chuẩn tiêu đề lớn của Apple */
+}
+
+h2 {
+    font-weight: 700;
+    letter-spacing: -0.017em;
+    font-size: 1.3rem;
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+/* --- INPUT & BUTTON STYLE (APPLE HOÀN THIỆN) --- */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+input[type="text"], textarea {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 12px;
+    color: var(--text-primary);
+    font-family: var(--font-stack);
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+input[type="text"]:focus, textarea:focus {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
+}
+
+.btn-primary {
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 14px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    filter: brightness(1.08);
+}
+
+.btn-primary:active {
+    transform: scale(0.97); /* Hiệu ứng nhấn nút đàn hồi kiểu iOS */
+    filter: brightness(0.95);
+}
+
+.btn-primary:disabled {
+    opacity: 0.55;
+    cursor: default;
+    transform: none;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* --- GIAO DIỆN LÀM VIỆC CHÍNH (MAIN WORKSPACE) --- */
+.glass-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 2rem;
+    min-height: 64px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+
+.logo {
+    font-weight: 700;
+    font-size: 1.2rem;
+    letter-spacing: -0.5px;
+}
+
+/* Menu dạng Segmented Control chuẩn iOS/macOS */
+.category-menu {
+    display: flex;
+    gap: 2px;
+    background: rgba(120, 120, 128, 0.16);
+    border-radius: 999px;
+    padding: 3px;
+}
+
+.menu-item {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 7px 15px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-radius: 999px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.menu-item:hover {
+    color: var(--text-primary);
+}
+
+.menu-item.active {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    font-weight: 600;
+}
+
+html[data-theme="evening"] .menu-item.active {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.user-tag {
+    font-size: 0.85rem;
+    font-weight: 600;
+    opacity: 0.8;
+}
+
+.workspace {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    padding: 24px;
+    height: calc(100vh - 64px);
+}
+
+.input-panel, .output-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    overflow: hidden;
+}
+
+#dynamic-prompt-form {
+    overflow-y: auto;
+    padding-right: 8px;
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* --- Ô NHẬP Ý TƯỞNG BAN ĐẦU (AI GỢI Ý) --- */
+.idea-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 16px;
+    padding: 16px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid var(--glass-border);
+}
+
+html[data-theme="evening"] .idea-box {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.idea-box label {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.idea-input-row {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+    margin-top: 4px;
+}
+
+.idea-input-row textarea {
+    flex: 1;
+    min-height: 56px;
+}
+
+.idea-input-row .btn-primary {
+    align-self: flex-end;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Vòng xoay loading khi chờ AI phản hồi */
+.spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    display: inline-block;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Nhấp nháy nhẹ khi trường được AI điền gợi ý */
+textarea.ai-suggested {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.18);
+    transition: all 0.4s ease;
+}
+
+/* --- KIỂU DÁNG CỦA MỖI Ô FORM ELEMENT --- */
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-field label {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.field-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.field-example {
+    font-size: 0.8rem;
+    color: var(--accent-color);
+    font-style: italic;
+    margin-bottom: 4px;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* --- HỘP KẾT QUẢ OUTPUT --- */
+.output-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.output-container {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+html[data-theme="evening"] .output-container {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+code {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+/* --- TOAST SYSTEM (THÔNG BÁO) --- */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    color: #1d1d1f;
+    padding: 12px 24px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    font-weight: 500;
+    animation: slideIn 0.3s ease-out forwards;
+}
+
+/* --- ANIMATIONS TRỰC QUAN --- */
+@keyframes floatingCard {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+
+@keyframes slideIn {
+    from { transform: translateX(120%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.hidden { display: none !important; }
+
+/* Tối ưu thanh cuộn chuẩn Apple */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 10px; }
+html[data-theme="evening"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); }
+
+/* --- RESPONSIVE CHO MÀN HÌNH HẸP (5 NHÓM CÔNG VIỆC) --- */
+@media (max-width: 1100px) {
+    .workspace {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: calc(100vh - 64px);
+    }
+    .category-menu {
+        order: 3;
+        width: 100%;
+        overflow-x: auto;
+    }
+    .screen {
+        overflow-y: auto;
+    }
+}

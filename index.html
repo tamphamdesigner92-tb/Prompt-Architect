@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Architect - Trợ Lý Khởi Tạo Prompt Chuyên Nghiệp</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="toast-container"></div>
+
+    <div id="welcome-screen" class="screen active">
+        <div class="glass-card welcome-card">
+            <h1 id="greeting-text">Chào bạn</h1>
+            <div id="name-input-container" class="hidden">
+                <p class="subtitle">Hình như đây là lần đầu bạn ghé thăm. Hãy để lại tên để tiện xưng hô nhé:</p>
+                <div class="input-group">
+                    <input type="text" id="user-name-input" placeholder="Nhập tên của bạn... (Ví dụ: Tâm Phạm)" autocomplete="off">
+                    <button id="btn-save-name" class="btn-primary">Bắt đầu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-screen" class="screen">
+        <header class="glass-header">
+            <div class="logo">Prompt Architect</div>
+            <nav class="category-menu">
+                <button class="menu-item active" data-category="vibe">Vibe Coding</button>
+                <button class="menu-item" data-category="problem">Giải Quyết Lỗi & Tối Ưu</button>
+                <button class="menu-item" data-category="content">Sáng Tạo Nội Dung</button>
+                <button class="menu-item" data-category="media">Sáng Tạo Ảnh/Video</button>
+                <button class="menu-item" data-category="analysis">Phân Tích Dữ Liệu</button>
+            </nav>
+            <div id="user-profile-tag" class="user-tag"></div>
+        </header>
+
+        <main class="workspace">
+            <section class="input-panel glass-card">
+                <h2 id="current-category-title">Cấu trúc Prompt</h2>
+
+                <div class="idea-box">
+                    <label for="idea-input">💡 Ý tưởng ban đầu của bạn</label>
+                    <span class="field-desc">Mô tả ngắn gọn ý tưởng, AI sẽ tự động gợi ý nội dung cho các trường bên dưới. Bạn có thể chỉnh sửa lại sau.</span>
+                    <div class="idea-input-row">
+                        <textarea id="idea-input" rows="2" placeholder="Ví dụ: Tôi muốn phân tích dữ liệu bán hàng để tìm sản phẩm chủ lực..."></textarea>
+                        <button id="btn-suggest" class="btn-primary">✨ Gợi ý bằng AI</button>
+                    </div>
+                </div>
+
+                <form id="dynamic-prompt-form">
+                    </form>
+            </section>
+
+            <section class="output-panel glass-card">
+                <div class="output-header">
+                    <h2>Kết Quả Prompt (Markdown)</h2>
+                    <button id="btn-copy-prompt" class="btn-secondary">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                        Sao chép
+                    </button>
+                </div>
+                <div class="output-container">
+                    <pre><code id="markdown-output">Vui lòng nhập liệu ở các ô bên trái để tạo cấu trúc prompt...</code></pre>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
