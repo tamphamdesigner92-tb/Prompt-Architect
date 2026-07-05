@@ -153,12 +153,25 @@ const AppState = {
 
         // Sự kiện gửi ý tưởng ban đầu để AI gợi ý điền form
         document.getElementById("btn-suggest").addEventListener("click", () => this.requestAISuggestions());
-        document.getElementById("idea-input").addEventListener("keydown", (e) => {
+        const ideaInput = document.getElementById("idea-input");
+        ideaInput.addEventListener("keydown", (e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
                 this.requestAISuggestions();
             }
         });
+        // Tự động giãn chiều cao ô ý tưởng theo nội dung (có giới hạn bằng max-height trong CSS)
+        ideaInput.addEventListener("input", () => this.autoResizeTextarea(ideaInput));
+    },
+
+    // Giãn chiều cao textarea theo nội dung; CSS max-height sẽ chặn giãn quá lớn
+    autoResizeTextarea(el) {
+        if (!el.value) {
+            el.style.height = ""; // Trống -> trả về chiều cao mặc định theo CSS
+            return;
+        }
+        el.style.height = "auto";
+        el.style.height = el.scrollHeight + "px";
     },
 
     // Sinh các ô nhập liệu một cách động dựa vào cấu trúc được lựa chọn
@@ -189,7 +202,9 @@ const AppState = {
         });
 
         // Làm mới ô ý tưởng và khung kết quả bên phải
-        document.getElementById("idea-input").value = "";
+        const ideaInput = document.getElementById("idea-input");
+        ideaInput.value = "";
+        ideaInput.style.height = "";
         document.getElementById("markdown-output").innerText = "Vui lòng nhập liệu ở các ô bên trái để tạo cấu trúc prompt...";
     },
 
