@@ -1,8 +1,17 @@
-// --- CẤU HÌNH KẾT NỐI OLLAMA (AI GỢI Ý) ---
-const OLLAMA_CONFIG = {
-    endpoint: "http://localhost:11434/api/generate",
-    model: "gemma4:e4b" // Đổi tên model tại đây nếu máy bạn cài phiên bản khác
+// --- CẤU HÌNH CÁC NHÀ CUNG CẤP AI ---
+const AI_CONFIG = {
+    gemini: {
+        model: "gemini-2.5-flash",
+        buildEndpoint: (model, key) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
+        rotateAfter: 10 // Luân phiên sang API key kế tiếp sau số lượt gợi ý thành công
+    },
+    ollama: {
+        endpoint: "http://localhost:11434/api/generate",
+        model: "gemma4:e4b" // Đổi tên model tại đây nếu máy bạn cài phiên bản khác
+    }
 };
+
+const SETTINGS_STORAGE_KEY = "prompt_ai_settings";
 
 // --- DATABASE CẤU TRÚC PROMPT ĐỘNG THEO TỪNG CÔNG VIỆC ---
 const PROMPT_STRUCTURES = {
@@ -57,11 +66,34 @@ const AppState = {
     currentCategory: "vibe",
     isSuggesting: false,
 
+    // Cài đặt AI: Gemini là mặc định, gemma4 (Ollama) là lựa chọn phụ
+    settings: {
+        provider: "gemini",
+        geminiKeys: [],       // Danh sách API key, luân phiên sử dụng
+        activeKeyIndex: 0,    // Key đang dùng
+        promptCount: 0        // Số lượt đã gợi ý bằng key hiện tại
+    },
+
     init() {
+        this.loadSettings();
         this.updateThemeByTime();
         this.handleScreens();
         this.setupEventListeners();
         this.renderFormFields();
+    },
+
+    // --- CÀI ĐẶT: LƯU / ĐỌC TỪ LOCALSTORAGE ---
+    loadSettings() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY));
+            if (saved && typeof saved === "object") {
+                this.settings = { ...this.settings, ...saved };
+            }
+        } catch (_) { /* Dữ liệu hỏng thì dùng mặc định */ }
+    },
+
+    saveSettings() {
+        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(this.settings));
     },
 
     // Kiểm tra thời gian hệ thống thiết lập nền & lời chào hợp lý
@@ -160,18 +192,114 @@ const AppState = {
                 this.requestAISuggestions();
             }
         });
-        // Tự động giãn chiều cao ô ý tưởng theo nội dung (có giới hạn bằng max-height trong CSS)
-        ideaInput.addEventListener("input", () => this.autoResizeTextarea(ideaInput));
+        ideaInput.addEventListener("input", () => this.autoResize(ideaInput));
+
+        // --- SỰ KIỆN MÀN HÌNH CÀI ĐẶT AI ---
+        document.getElementById("btn-open-settings").addEventListener("click", () => this.openSettings());
+        document.getElementById("btn-close-settings").addEventListener("click", () => this.closeSettings());
+
+        // Bấm vào nền mờ bên ngoài card thì đóng modal
+        document.getElementById("settings-modal").addEventListener("click", (e) => {
+            if (e.target.id === "settings-modal") this.closeSettings();
+        });
+
+        // Chuyển đổi nhà cung cấp AI
+        document.querySelectorAll('input[name="ai-provider"]').forEach(radio => {
+            radio.addEventListener("change", (e) => {
+                this.settings.provider = e.target.value;
+                this.saveSettings();
+                const label = e.target.value === "gemini" ? "Gemini API" : `Ollama (${AI_CONFIG.ollama.model})`;
+                this.showToast(`Đã chuyển sang dùng ${label}`);
+            });
+        });
+
+        // Thêm API key Gemini mới
+        const addKey = () => {
+            const input = document.getElementById("new-gemini-key");
+            const key = input.value.trim();
+            if (!key) {
+                this.showToast("Hãy dán API key vào ô trước khi thêm!", "error");
+                return;
+            }
+            if (this.settings.geminiKeys.includes(key)) {
+                this.showToast("API key này đã có trong danh sách!", "error");
+                return;
+            }
+            this.settings.geminiKeys.push(key);
+            this.saveSettings();
+            this.renderKeyList();
+            input.value = "";
+            this.showToast(`Đã thêm API key #${this.settings.geminiKeys.length}!`);
+        };
+        document.getElementById("btn-add-key").addEventListener("click", addKey);
+        document.getElementById("new-gemini-key").addEventListener("keydown", (e) => {
+            if (e.key === "Enter") { e.preventDefault(); addKey(); }
+        });
     },
 
-    // Giãn chiều cao textarea theo nội dung; CSS max-height sẽ chặn giãn quá lớn
-    autoResizeTextarea(el) {
-        if (!el.value) {
-            el.style.height = ""; // Trống -> trả về chiều cao mặc định theo CSS
+    // --- MÀN HÌNH CÀI ĐẶT AI ---
+    openSettings() {
+        // Đồng bộ trạng thái hiện tại lên giao diện trước khi hiện
+        document.querySelectorAll('input[name="ai-provider"]').forEach(radio => {
+            radio.checked = radio.value === this.settings.provider;
+        });
+        this.renderKeyList();
+        document.getElementById("settings-modal").classList.remove("hidden");
+    },
+
+    closeSettings() {
+        document.getElementById("settings-modal").classList.add("hidden");
+    },
+
+    // Vẽ danh sách API key (che bớt ký tự để bảo mật) + trạng thái luân phiên
+    renderKeyList() {
+        const list = document.getElementById("gemini-key-list");
+        const status = document.getElementById("key-rotation-status");
+        list.innerHTML = "";
+
+        if (this.settings.geminiKeys.length === 0) {
+            status.innerText = "Chưa có API key nào. Lấy key miễn phí tại aistudio.google.com";
             return;
         }
-        el.style.height = "auto";
-        el.style.height = el.scrollHeight + "px";
+
+        this.settings.geminiKeys.forEach((key, index) => {
+            const item = document.createElement("li");
+            item.className = "key-item";
+
+            const masked = key.length > 12 ? `${key.slice(0, 6)}••••••${key.slice(-4)}` : "••••••";
+            const label = document.createElement("span");
+            label.className = "key-label";
+            label.textContent = `Key #${index + 1}: ${masked}`;
+
+            if (index === this.settings.activeKeyIndex) {
+                const badge = document.createElement("span");
+                badge.className = "key-badge";
+                badge.textContent = "Đang dùng";
+                label.appendChild(badge);
+            }
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.className = "btn-delete-key";
+            deleteBtn.title = "Xóa key này";
+            deleteBtn.textContent = "✕";
+            deleteBtn.addEventListener("click", () => {
+                this.settings.geminiKeys.splice(index, 1);
+                // Điều chỉnh lại con trỏ key đang dùng sau khi xóa
+                if (this.settings.activeKeyIndex >= this.settings.geminiKeys.length) {
+                    this.settings.activeKeyIndex = 0;
+                }
+                this.settings.promptCount = 0;
+                this.saveSettings();
+                this.renderKeyList();
+                this.showToast("Đã xóa API key.");
+            });
+
+            item.appendChild(label);
+            item.appendChild(deleteBtn);
+            list.appendChild(item);
+        });
+
+        status.innerText = `Đang dùng key #${this.settings.activeKeyIndex + 1}/${this.settings.geminiKeys.length} — đã gợi ý ${this.settings.promptCount}/${AI_CONFIG.gemini.rotateAfter} lượt (đủ ${AI_CONFIG.gemini.rotateAfter} lượt sẽ tự chuyển key kế tiếp).`;
     },
 
     // Sinh các ô nhập liệu một cách động dựa vào cấu trúc được lựa chọn
@@ -193,8 +321,10 @@ const AppState = {
                 <textarea id="field-${field.id}" placeholder="Điền thông tin của bạn vào đây..."></textarea>
             `;
 
-            // Lắng nghe sự kiện gõ phím để tạo prompt theo thời gian thực (Real-time update)
-            fieldWrapper.querySelector("textarea").addEventListener("input", () => {
+            // Lắng nghe sự kiện gõ phím: tự co giãn chiều cao + tạo prompt theo thời gian thực
+            const textarea = fieldWrapper.querySelector("textarea");
+            textarea.addEventListener("input", () => {
+                this.autoResize(textarea);
                 this.generateMarkdownPrompt();
             });
 
@@ -202,19 +332,51 @@ const AppState = {
         });
 
         // Làm mới ô ý tưởng và khung kết quả bên phải
-        const ideaInput = document.getElementById("idea-input");
-        ideaInput.value = "";
-        ideaInput.style.height = "";
+        document.getElementById("idea-input").value = "";
         document.getElementById("markdown-output").innerText = "Vui lòng nhập liệu ở các ô bên trái để tạo cấu trúc prompt...";
     },
 
-    // --- GỌI OLLAMA ĐỂ SINH GỢI Ý TỪ Ý TƯỞNG BAN ĐẦU ---
+    // --- XÂY DỰNG PROMPT CHẤT LƯỢNG CAO GỬI CHO AI ---
+    buildSuggestionPrompt(idea, categoryData) {
+        const fieldSpecs = categoryData.fields
+            .map(f => `- "${f.id}" (${f.label}): ${f.desc} Ví dụ tham khảo: ${f.ex}`)
+            .join("\n");
+
+        return `Bạn là chuyên gia Prompt Engineering cấp cao, chuyên thiết kế prompt chất lượng sản xuất (production-grade) cho các mô hình AI.
+
+NHIỆM VỤ: Từ ý tưởng thô của người dùng, viết nội dung CHI TIẾT và CHUYÊN NGHIỆP cho từng thành phần của một prompt thuộc nhóm công việc: "${categoryData.title}".
+
+Ý TƯỞNG GỐC CỦA NGƯỜI DÙNG: "${idea}"
+
+CÁC THÀNH PHẦN CẦN VIẾT:
+${fieldSpecs}
+
+YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
+1. Viết bằng tiếng Việt, mỗi thành phần 3-6 câu, giàu thông tin và đi thẳng vào trọng tâm.
+2. Cụ thể hóa tối đa: dùng con số, tiêu chí đo lường được và thuật ngữ chuyên ngành chính xác. TUYỆT ĐỐI tránh các từ chung chung như "chất lượng cao", "tối ưu", "đẹp", "tốt nhất" mà không giải thích cụ thể như thế nào.
+3. Chủ động bổ sung các chi tiết chuyên môn quan trọng mà người dùng chưa nghĩ tới: ràng buộc kỹ thuật, tiêu chuẩn ngành, trường hợp biên (edge case), phong cách/tài liệu tham chiếu phù hợp.
+4. Bám sát và mở rộng đúng hướng ý tưởng gốc — không suy diễn sang chủ đề khác.
+5. Các thành phần phải nhất quán và bổ trợ lẫn nhau, ghép lại thành một prompt hoàn chỉnh có thể dùng ngay mà không cần sửa.
+
+ĐỊNH DẠNG ĐẦU RA: Chỉ trả về DUY NHẤT một JSON object hợp lệ với đúng các khóa: ${categoryData.fields.map(f => `"${f.id}"`).join(", ")}. Giá trị là chuỗi văn bản thuần tiếng Việt. Không thêm lời giải thích, không markdown, không code fence.`;
+    },
+
+    // --- ĐIỀU PHỐI GỌI AI THEO NHÀ CUNG CẤP ĐANG CHỌN ---
     async requestAISuggestions() {
         if (this.isSuggesting) return;
 
+        const provider = this.settings.provider;
+
         // Ollama chặn request từ file:// (origin null) -> bắt buộc chạy qua localhost
-        if (location.protocol === "file:") {
-            this.showToast("Không dùng được AI khi mở file trực tiếp. Hãy chạy ứng dụng bằng file start-app.bat!", "error");
+        if (provider === "ollama" && location.protocol === "file:") {
+            this.showToast("Không dùng được Ollama khi mở file trực tiếp. Hãy chạy ứng dụng bằng file start-app.bat!", "error");
+            return;
+        }
+
+        // Gemini cần ít nhất 1 API key
+        if (provider === "gemini" && this.settings.geminiKeys.length === 0) {
+            this.showToast("Bạn chưa thêm API key Gemini. Hãy thêm key trong Cài đặt!", "error");
+            this.openSettings();
             return;
         }
 
@@ -226,42 +388,16 @@ const AppState = {
 
         const categoryData = PROMPT_STRUCTURES[this.currentCategory];
         const requestedCategory = this.currentCategory; // Chống ghi đè khi người dùng đổi tab giữa chừng
-
-        // Mô tả các trường cần AI đề xuất nội dung
-        const fieldSpecs = categoryData.fields
-            .map(f => `- "${f.id}": ${f.label} — ${f.desc} (Ví dụ tham khảo: ${f.ex})`)
-            .join("\n");
-
-        const prompt = `Bạn là trợ lý thiết kế prompt chuyên nghiệp.
-Người dùng đang soạn prompt thuộc nhóm công việc: "${categoryData.title}".
-Ý tưởng ban đầu của người dùng: "${idea}"
-
-Dựa trên ý tưởng đó, hãy đề xuất nội dung cụ thể (bằng tiếng Việt, mỗi trường 1-3 câu, bám sát ý tưởng của người dùng) cho các trường sau:
-${fieldSpecs}
-
-Chỉ trả về DUY NHẤT một JSON object hợp lệ với đúng các khóa: ${categoryData.fields.map(f => `"${f.id}"`).join(", ")}. Không thêm giải thích hay markdown.`;
+        const prompt = this.buildSuggestionPrompt(idea, categoryData);
 
         this.setSuggestingState(true);
 
         try {
-            const response = await fetch(OLLAMA_CONFIG.endpoint, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    model: OLLAMA_CONFIG.model,
-                    prompt: prompt,
-                    format: "json",
-                    stream: false
-                })
-            });
+            const rawText = provider === "gemini"
+                ? await this.callGemini(prompt)
+                : await this.callOllama(prompt);
 
-            if (!response.ok) {
-                throw new Error(`Ollama trả về mã lỗi ${response.status}`);
-            }
-
-            const data = await response.json();
-            const suggestions = this.parseJSONSafely(data.response);
-
+            const suggestions = this.parseJSONSafely(rawText);
             if (!suggestions) {
                 throw new Error("Không đọc được dữ liệu JSON từ model");
             }
@@ -269,30 +405,129 @@ Chỉ trả về DUY NHẤT một JSON object hợp lệ với đúng các khóa
             // Nếu người dùng đã chuyển nhóm khác trong lúc chờ thì bỏ qua kết quả
             if (this.currentCategory !== requestedCategory) return;
 
-            let filledCount = 0;
-            categoryData.fields.forEach(field => {
-                const value = suggestions[field.id];
-                const textarea = document.getElementById(`field-${field.id}`);
-                if (textarea && typeof value === "string" && value.trim()) {
-                    textarea.value = value.trim();
-                    textarea.classList.add("ai-suggested");
-                    setTimeout(() => textarea.classList.remove("ai-suggested"), 1600);
-                    filledCount++;
-                }
-            });
-
-            if (filledCount > 0) {
-                this.generateMarkdownPrompt();
-                this.showToast(`AI đã gợi ý ${filledCount} trường. Bạn có thể chỉnh sửa lại tùy ý!`);
-            } else {
-                this.showToast("Model không trả về gợi ý phù hợp, hãy thử lại.", "error");
-            }
+            this.applySuggestions(suggestions, categoryData);
         } catch (err) {
-            console.error("Lỗi gọi Ollama:", err);
-            this.showToast(`Không kết nối được Ollama (${OLLAMA_CONFIG.model}). Kiểm tra Ollama đang chạy tại localhost:11434.`, "error");
+            console.error("Lỗi gọi AI:", err);
+            const message = provider === "gemini"
+                ? "Gọi Gemini thất bại trên tất cả API key. Kiểm tra key trong Cài đặt và kết nối mạng."
+                : `Không kết nối được Ollama (${AI_CONFIG.ollama.model}). Kiểm tra Ollama đang chạy tại localhost:11434.`;
+            this.showToast(message, "error");
         } finally {
             this.setSuggestingState(false);
         }
+    },
+
+    // --- GỌI GEMINI API VỚI CƠ CHẾ LUÂN PHIÊN KEY ---
+    // Key lỗi -> tự thử key kế tiếp. Đủ 10 lượt thành công -> chủ động chuyển key.
+    async callGemini(promptText) {
+        const keys = this.settings.geminiKeys;
+        const total = keys.length;
+        let lastError = null;
+
+        for (let attempt = 0; attempt < total; attempt++) {
+            const index = (this.settings.activeKeyIndex + attempt) % total;
+            try {
+                const response = await fetch(AI_CONFIG.gemini.buildEndpoint(AI_CONFIG.gemini.model, keys[index]), {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: promptText }] }],
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            temperature: 0.7
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Gemini trả về mã lỗi ${response.status}`);
+                }
+
+                const data = await response.json();
+                const text = data.candidates && data.candidates[0]
+                    && data.candidates[0].content && data.candidates[0].content.parts
+                    && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
+
+                if (!text) {
+                    throw new Error("Gemini không trả về nội dung");
+                }
+
+                // Nếu phải nhảy sang key khác do key trước lỗi thì thông báo
+                if (index !== this.settings.activeKeyIndex) {
+                    this.settings.activeKeyIndex = index;
+                    this.settings.promptCount = 0;
+                    this.showToast(`API key trước không phản hồi, đã tự chuyển sang key #${index + 1}.`);
+                }
+
+                // Đếm lượt dùng, đủ ngưỡng thì luân phiên sang key kế tiếp
+                this.settings.promptCount++;
+                if (this.settings.promptCount >= AI_CONFIG.gemini.rotateAfter) {
+                    this.settings.promptCount = 0;
+                    if (total > 1) {
+                        this.settings.activeKeyIndex = (index + 1) % total;
+                        this.showToast(`Đã dùng đủ ${AI_CONFIG.gemini.rotateAfter} lượt, tự chuyển sang API key #${this.settings.activeKeyIndex + 1}.`);
+                    }
+                }
+                this.saveSettings();
+
+                return text;
+            } catch (err) {
+                lastError = err;
+                console.warn(`API key #${index + 1} lỗi:`, err.message);
+            }
+        }
+
+        throw lastError || new Error("Tất cả API key đều không phản hồi");
+    },
+
+    // --- GỌI OLLAMA LOCAL (gemma4) ---
+    async callOllama(promptText) {
+        const response = await fetch(AI_CONFIG.ollama.endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                model: AI_CONFIG.ollama.model,
+                prompt: promptText,
+                format: "json",
+                stream: false
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ollama trả về mã lỗi ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.response;
+    },
+
+    // Điền gợi ý AI vào các ô nhập liệu kèm hiệu ứng
+    applySuggestions(suggestions, categoryData) {
+        let filledCount = 0;
+        categoryData.fields.forEach(field => {
+            const value = suggestions[field.id];
+            const textarea = document.getElementById(`field-${field.id}`);
+            if (textarea && typeof value === "string" && value.trim()) {
+                textarea.value = value.trim();
+                this.autoResize(textarea); // Nới chiều cao vừa với nội dung AI vừa điền
+                textarea.classList.add("ai-suggested");
+                setTimeout(() => textarea.classList.remove("ai-suggested"), 1600);
+                filledCount++;
+            }
+        });
+
+        if (filledCount > 0) {
+            this.generateMarkdownPrompt();
+            this.showToast(`AI đã gợi ý ${filledCount} trường. Bạn có thể chỉnh sửa lại tùy ý!`);
+        } else {
+            this.showToast("Model không trả về gợi ý phù hợp, hãy thử lại.", "error");
+        }
+    },
+
+    // Tự điều chỉnh chiều cao textarea vừa khít nội dung (auto-grow)
+    autoResize(textarea) {
+        textarea.style.height = "auto";
+        textarea.style.height = `${textarea.scrollHeight}px`;
     },
 
     // Trích xuất JSON an toàn kể cả khi model trả kèm văn bản thừa

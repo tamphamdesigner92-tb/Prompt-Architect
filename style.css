@@ -376,7 +376,8 @@ textarea.ai-suggested {
 }
 
 textarea {
-    resize: vertical;
+    resize: none;          /* Chiều cao tự co giãn theo nội dung (autoResize trong app.js) */
+    overflow-y: hidden;    /* Ẩn thanh cuộn vì chiều cao luôn vừa khít nội dung */
     min-height: 80px;
 }
 
@@ -409,6 +410,187 @@ code {
     font-family: "SF Mono", Menlo, Consolas, monospace;
     font-size: 0.9rem;
     line-height: 1.5;
+}
+
+/* --- MÀN HÌNH CÀI ĐẶT AI (MODAL) --- */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-icon {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--glass-border);
+    color: var(--text-primary);
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.btn-icon:active {
+    transform: scale(0.92);
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.settings-card {
+    width: 100%;
+    max-width: 520px;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.settings-label {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.provider-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.provider-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid var(--glass-border);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.provider-option:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.provider-option input[type="radio"] {
+    accent-color: var(--accent-color);
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.provider-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.provider-info span {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.key-input-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.key-input-row input {
+    flex: 1;
+}
+
+.key-input-row .btn-primary {
+    padding: 10px 20px;
+    white-space: nowrap;
+}
+
+#gemini-key-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.key-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid var(--glass-border);
+    font-size: 0.9rem;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+}
+
+.key-badge {
+    background: var(--accent-color);
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 600;
+    font-family: var(--font-stack);
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-left: 8px;
+}
+
+.btn-delete-key {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.btn-delete-key:hover {
+    color: #ff3b30;
+    background: rgba(255, 59, 48, 0.1);
+}
+
+html[data-theme="evening"] .provider-option,
+html[data-theme="evening"] .key-item {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme="evening"] .provider-option:hover {
+    background: rgba(255, 255, 255, 0.12);
 }
 
 /* --- TOAST SYSTEM (THÔNG BÁO) --- */

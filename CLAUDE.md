@@ -58,14 +58,22 @@ Quản lý toàn bộ state và hành vi. Các method chính:
 - `generateMarkdownPrompt()` — gom giá trị các textarea thành Markdown (`# LABEL\n- value`), cập nhật real-time
 - `showToast(message, type)` — thông báo góc phải trên (`success`/`error`)
 
-## Tích hợp Ollama (AI gợi ý)
+## Tích hợp AI (2 nhà cung cấp)
 
-- **Config:** hằng số `OLLAMA_CONFIG` đầu `app.js` — endpoint `http://localhost:11434/api/generate`, model **`gemma4:e4b`** (lưu ý: đúng là `e4b`, không phải `eb4`).
-- **Request:** POST với `{ model, prompt, format: "json", stream: false }`. Prompt yêu cầu model trả về JSON object có khóa đúng bằng các `field.id` của nhóm hiện tại, giá trị tiếng Việt 1-3 câu.
-- **Response:** parse qua `parseJSONSafely()` (chịu được văn bản thừa quanh JSON), điền vào textarea kèm hiệu ứng `.ai-suggested` nhấp nháy 1.6s, rồi gọi `generateMarkdownPrompt()`.
+- **Config:** hằng số `AI_CONFIG` đầu `app.js`, gồm `gemini` (mặc định) và `ollama`. Cài đặt người dùng lưu ở localStorage khóa `prompt_ai_settings`: `{ provider, geminiKeys[], activeKeyIndex, promptCount }` — quản lý qua `loadSettings()`/`saveSettings()`.
+- **Prompt gửi AI:** build tại `buildSuggestionPrompt()` — dùng chung cho cả 2 provider, yêu cầu vai trò chuyên gia Prompt Engineering, mỗi trường 3-6 câu chi tiết có số liệu/thuật ngữ, cấm từ chung chung, trả về JSON object có khóa đúng bằng các `field.id` của nhóm hiện tại.
+- **Điều phối:** `requestAISuggestions()` → `callGemini()` hoặc `callOllama()` → `parseJSONSafely()` → `applySuggestions()` (điền textarea kèm hiệu ứng `.ai-suggested` 1.6s + `generateMarkdownPrompt()`).
 - **Chống race:** lưu `requestedCategory` trước khi gọi; nếu người dùng đổi tab trong lúc chờ thì bỏ qua kết quả. Cờ `isSuggesting` chặn double-submit, nút chuyển sang spinner khi đang chờ.
+
+### Gemini API (mặc định)
+- Model `gemini-2.5-flash`, endpoint `generativelanguage.googleapis.com/v1beta/.../generateContent?key=...`, dùng `responseMimeType: "application/json"`.
+- **Luân phiên nhiều API key** (`callGemini()`): người dùng thêm key trong modal Cài đặt (nút ⚙️ trên header). Sau mỗi **10 lượt thành công** tự chuyển key kế tiếp (`rotateAfter` trong `AI_CONFIG.gemini`); khi key lỗi/không phản hồi thì tự thử lần lượt các key còn lại trong cùng request. Chưa có key → mở modal Cài đặt và báo lỗi.
+- Modal Cài đặt: `#settings-modal` trong `index.html`, render danh sách key (che ký tự) qua `renderKeyList()`.
+
+### Ollama (lựa chọn phụ)
+- Endpoint `http://localhost:11434/api/generate`, model **`gemma4:e4b`** (lưu ý: đúng là `e4b`, không phải `eb4`). POST `{ model, prompt, format: "json", stream: false }`.
 - **Hiệu năng:** model 8B, phản hồi thường mất **30-60 giây** — đây là bình thường, không phải lỗi.
-- **CORS:** nếu mở bằng `file://` có thể bị chặn — chạy qua http-server (launch.json có sẵn) hoặc đặt `OLLAMA_ORIGINS=*`.
+- **CORS:** Ollama chặn origin `null` — bắt buộc chạy qua http-server (`start-app.bat`); app có guard báo lỗi nếu mở bằng `file://`.
 
 ## Kiến trúc style.css
 

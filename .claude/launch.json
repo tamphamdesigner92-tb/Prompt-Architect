@@ -4,8 +4,9 @@
     {
       "name": "prompt-architect",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["-y", "http-server", "-p", "8931", "-c-1"],
-      "port": 8931
+      "runtimeArgs": ["-y", "http-server", "-c-1"],
+      "port": 8931,
+      "autoPort": true
     }
   ]
 }

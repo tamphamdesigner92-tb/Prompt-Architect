@@ -32,7 +32,10 @@
                 <button class="menu-item" data-category="media">Sáng Tạo Ảnh/Video</button>
                 <button class="menu-item" data-category="analysis">Phân Tích Dữ Liệu</button>
             </nav>
-            <div id="user-profile-tag" class="user-tag"></div>
+            <div class="header-actions">
+                <div id="user-profile-tag" class="user-tag"></div>
+                <button id="btn-open-settings" class="btn-icon" title="Cài đặt AI">⚙️</button>
+            </div>
         </header>
 
         <main class="workspace">
@@ -65,6 +68,46 @@
                 </div>
             </section>
         </main>
+    </div>
+
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="glass-card settings-card">
+            <div class="settings-header">
+                <h2>⚙️ Cài đặt AI</h2>
+                <button id="btn-close-settings" class="btn-icon" title="Đóng">✕</button>
+            </div>
+
+            <div class="settings-section">
+                <label class="settings-label">Nhà cung cấp AI</label>
+                <div class="provider-options">
+                    <label class="provider-option">
+                        <input type="radio" name="ai-provider" value="gemini" checked>
+                        <div class="provider-info">
+                            <strong>Gemini API</strong>
+                            <span>Chất lượng cao, phản hồi nhanh, cần API key (mặc định)</span>
+                        </div>
+                    </label>
+                    <label class="provider-option">
+                        <input type="radio" name="ai-provider" value="ollama">
+                        <div class="provider-info">
+                            <strong>Ollama — gemma4:e4b</strong>
+                            <span>Chạy local miễn phí, không cần mạng, chậm hơn (30-60 giây)</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <label class="settings-label">Danh sách API Key Gemini</label>
+                <span class="field-desc">Thêm nhiều key để tự luân phiên: sau mỗi 10 lượt gợi ý hoặc khi key không phản hồi, ứng dụng tự chuyển sang key kế tiếp. Lấy key miễn phí tại aistudio.google.com</span>
+                <div class="key-input-row">
+                    <input type="text" id="new-gemini-key" placeholder="Dán API key Gemini vào đây..." autocomplete="off">
+                    <button id="btn-add-key" class="btn-primary">Thêm</button>
+                </div>
+                <ul id="gemini-key-list"></ul>
+                <span id="key-rotation-status" class="field-desc"></span>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>
