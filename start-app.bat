@@ -11,6 +11,26 @@ cd /d "%~dp0"
 set PORT=8931
 set URL=http://localhost:%PORT%
 
+where node >nul 2>&1
+if errorlevel 1 (
+    echo.
+    echo Khong tim thay Node.js trong PATH.
+    echo Hay cai Node.js tai https://nodejs.org roi thu lai.
+    echo.
+    pause
+    exit /b 1
+)
+
+where npm >nul 2>&1
+if errorlevel 1 (
+    echo.
+    echo Khong tim thay npm trong PATH.
+    echo Hay cai lai Node.js tai https://nodejs.org roi thu lai.
+    echo.
+    pause
+    exit /b 1
+)
+
 if not exist "node_modules" (
     echo Lan dau chay: dang cai dat dependencies (npm install)...
     call npm install
@@ -37,6 +57,8 @@ if "%READY%"=="0" (
     echo Nguyen nhan thuong gap: chua chay "npm install" hoac cong %PORT% dang bi chiem.
     echo Thu chay tay: npm install ^&^& npm start  ^(roi mo %URL% khi thay dong "dang chay tai"^)
     echo.
+    pause
+    exit /b 1
 )
 
 start "" %URL%
