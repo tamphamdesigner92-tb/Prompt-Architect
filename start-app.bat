@@ -32,7 +32,7 @@ if errorlevel 1 (
 )
 
 if not exist "node_modules" (
-    echo Lan dau chay: dang cai dat dependencies (npm install)...
+    echo Lan dau chay: dang cai dat dependencies - npm install...
     call npm install
 )
 
