@@ -66,9 +66,14 @@ Quản lý toàn bộ state và hành vi. Các method chính:
 ## Tích hợp AI (2 nhà cung cấp)
 
 - **Config:** hằng số `AI_CONFIG` đầu `app.js`, gồm `gemini` (mặc định) và `ollama`. Cài đặt người dùng lưu ở localStorage khóa `prompt_ai_settings`: `{ provider, geminiKeys[], activeKeyIndex, promptCount }` — quản lý qua `loadSettings()`/`saveSettings()`.
-- **Prompt gửi AI:** build tại `buildSuggestionPrompt()` — dùng chung cho cả 2 provider, yêu cầu vai trò chuyên gia Prompt Engineering, mỗi trường 3-6 câu chi tiết có số liệu/thuật ngữ, cấm từ chung chung, trả về JSON object có khóa đúng bằng các `field.id` của nhóm hiện tại.
-- **Điều phối:** `requestAISuggestions()` → `callGemini()` hoặc `callOllama()` → `parseJSONSafely()` → `applySuggestions()` (điền textarea kèm hiệu ứng `.ai-suggested` 1.6s + `generateMarkdownPrompt()`).
-- **Chống race:** lưu `requestedCategory` trước khi gọi; nếu người dùng đổi tab trong lúc chờ thì bỏ qua kết quả. Cờ `isSuggesting` chặn double-submit, nút chuyển sang spinner khi đang chờ.
+- **Prompt gửi AI:** build tại `buildSuggestionPrompt()` — dùng chung cho cả 2 provider, yêu cầu vai trò chuyên gia Prompt Engineering, mỗi trường 3-6 câu chi tiết có số liệu/thuật ngữ, cấm từ chung chung, trả về JSON object có khóa đúng bằng các `field.id` của nhóm hiện tại. Nhận `extras = { architecture, tech, hasImages }` để chèn khối "NGỮ CẢNH KỸ THUẬT BỔ SUNG" và chỉ dẫn phân tích ảnh khi có.
+- **Điều phối:** `requestAISuggestions()` → `callGemini(prompt, images)` hoặc `callOllama(prompt, images)` → `parseJSONSafely()` → `applySuggestions()` (điền textarea kèm hiệu ứng `.ai-suggested` 1.6s + `generateMarkdownPrompt()`).
+- **Chống race:** lưu `requestedCategory` trước khi gọi; nếu người dùng đổi tab trong lúc chờ thì bỏ qua kết quả. Cờ `isSuggesting` chặn double-submit; `setSuggestingState(loading, mode)` với `mode="suggest"|"optimize"` quyết định nút nào hiện spinner (khóa cả hai nút khi đang chờ).
+
+### Ngữ cảnh nâng cao & Ảnh tham chiếu & Tối ưu prompt
+- **Ngữ cảnh nâng cao** (`#advanced-context`, `<details>`): 2 trường `#context-architecture` (text/JSON/YAML) + `#context-tech` (từ khóa). **Chỉ hiện ở nhóm trong `CONTEXT_CATEGORIES = ["vibe","problem"]`**. Chỉ dùng làm ngữ cảnh cho AI (chèn vào prompt gửi đi), **KHÔNG** đưa vào Markdown kết quả.
+- **Ảnh tham chiếu** (`#reference-panel`): **chỉ hiện ở nhóm `media`**, tối đa `MAX_REFERENCE_IMAGES = 3`. Kéo-thả/chọn file → `compressImageFile(file, 1024)` → lưu tạm trong `AppState.referenceImages` (mảng dataURL JPEG, **KHÔNG lưu server**, khác hẳn ảnh Thư viện). Gửi cho AI: Gemini nhận `inline_data` trong `contents.parts`; Ollama nhận mảng `images` base64. `parseDataUrl()` tách `{ mimeType, base64 }`. `updateContextPanels()` bật/tắt 2 panel theo nhóm và xoá dữ liệu tạm khi đổi tab.
+- **Tối ưu / Sửa lỗi Prompt** (`#btn-optimize`): `optimizePrompt()` gom giá trị field hiện có → `buildOptimizePrompt()` (yêu cầu AI phê bình & VIẾT LẠI, giữ nguyên ý định) → cùng luồng `callGemini/callOllama` → `applySuggestions()`. Cùng cơ chế chống race + ảnh tham chiếu như trên.
 
 ### Gemini API (mặc định)
 - Model `gemini-2.5-flash`, endpoint `generativelanguage.googleapis.com/v1beta/.../generateContent?key=...`, dùng `responseMimeType: "application/json"`.
@@ -76,7 +81,7 @@ Quản lý toàn bộ state và hành vi. Các method chính:
 - Modal Cài đặt: `#settings-modal` trong `index.html`, render danh sách key (che ký tự) qua `renderKeyList()`.
 
 ### Ollama (lựa chọn phụ)
-- Endpoint `http://localhost:11434/api/generate`, model **`gemma4:e4b`** (lưu ý: đúng là `e4b`, không phải `eb4`). POST `{ model, prompt, format: "json", stream: false }`.
+- Endpoint `http://localhost:11434/api/generate`, model **`gemma4:e4b`** (lưu ý: đúng là `e4b`, không phải `eb4`). POST `{ model, prompt, format: "json", stream: false }`; khi có ảnh tham chiếu thì thêm mảng `images` (base64, đã bỏ tiền tố `data:`).
 - **Hiệu năng:** model 8B, phản hồi thường mất **30-60 giây** — đây là bình thường, không phải lỗi.
 - **CORS:** Ollama chặn origin `null` — bắt buộc chạy qua http-server (`start-app.bat`); app có guard báo lỗi nếu mở bằng `file://`.
 

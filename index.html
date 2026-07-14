@@ -53,6 +53,34 @@
                     </div>
                 </div>
 
+                <!-- Ngữ cảnh kỹ thuật bổ sung: chỉ hiện ở nhóm vibe & problem, chỉ dùng làm ngữ cảnh cho AI -->
+                <details id="advanced-context" class="advanced-context hidden">
+                    <summary>🔧 Ngữ cảnh nâng cao (tùy chọn)</summary>
+                    <div class="advanced-context-body">
+                        <div class="form-field">
+                            <label for="context-architecture">Mô tả Kiến trúc Ứng dụng</label>
+                            <span class="field-desc">Cấu trúc hệ thống, luồng dữ liệu, sơ đồ API/ERD... Nhận cả văn bản tự do hoặc JSON/YAML.</span>
+                            <textarea id="context-architecture" placeholder="Ví dụ: Frontend React gọi REST API Node/Express, DB PostgreSQL với bảng users, orders, products..."></textarea>
+                        </div>
+                        <div class="form-field">
+                            <label for="context-tech">Công nghệ Sử dụng</label>
+                            <span class="field-desc">Danh sách framework/thư viện/công cụ, phân tách bằng dấu phẩy.</span>
+                            <input type="text" id="context-tech" placeholder="Ví dụ: React, TypeScript, Express, PostgreSQL, Docker" autocomplete="off">
+                        </div>
+                    </div>
+                </details>
+
+                <!-- Ảnh tham chiếu (đầu vào tạm thời gửi cho AI phân tích): chỉ hiện ở nhóm media, tối đa 3 ảnh -->
+                <div id="reference-panel" class="reference-panel hidden">
+                    <label>🖼️ Ảnh tham chiếu (tối đa 3)</label>
+                    <span class="field-desc">Kéo-thả hoặc bấm để tải ảnh. AI sẽ phân tích phong cách, bố cục, màu sắc và ánh sáng để gợi ý prompt sát hơn. Ảnh chỉ dùng cho lần gợi ý này, không lưu lại.</span>
+                    <div id="reference-dropzone" class="reference-dropzone">
+                        <div id="reference-thumbs" class="reference-thumbs"></div>
+                        <span class="reference-hint">+ Thêm ảnh tham chiếu</span>
+                    </div>
+                    <input type="file" id="reference-image-input" accept="image/*" multiple class="hidden">
+                </div>
+
                 <form id="dynamic-prompt-form">
                     </form>
             </section>
@@ -61,6 +89,7 @@
                 <div class="output-header">
                     <h2>Kết Quả Prompt (Markdown)</h2>
                     <div class="output-actions">
+                        <button id="btn-optimize" class="btn-secondary">🪄 Tối ưu / Sửa lỗi</button>
                         <button id="btn-save-prompt" class="btn-secondary">💾 Lưu</button>
                         <button id="btn-copy-prompt" class="btn-secondary">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>

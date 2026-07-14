@@ -66,6 +66,12 @@ const AppState = {
     currentCategory: "vibe",
     isSuggesting: false,
 
+    // Ngữ cảnh nâng cao chỉ áp dụng cho các nhóm liên quan tới code
+    CONTEXT_CATEGORIES: ["vibe", "problem"],
+    // Ảnh tham chiếu (đầu vào tạm thời cho nhóm media): mảng dataURL JPEG, tối đa 3, KHÔNG lưu server
+    referenceImages: [],
+    MAX_REFERENCE_IMAGES: 3,
+
     // Cài đặt AI: Gemini là mặc định, gemma4 (Ollama) là lựa chọn phụ
     settings: {
         provider: "gemini",
@@ -214,6 +220,12 @@ const AppState = {
 
         // Sự kiện gửi ý tưởng ban đầu để AI gợi ý điền form
         document.getElementById("btn-suggest").addEventListener("click", () => this.requestAISuggestions());
+
+        // Nút Tối ưu / Sửa lỗi Prompt: nhờ AI phê bình & viết lại các trường hiện có
+        document.getElementById("btn-optimize").addEventListener("click", () => this.optimizePrompt());
+
+        // Vùng ảnh tham chiếu (nhóm media)
+        this.setupReferenceImages();
         const ideaInput = document.getElementById("idea-input");
         ideaInput.addEventListener("keydown", (e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -363,19 +375,53 @@ const AppState = {
         // Làm mới ô ý tưởng và khung kết quả bên phải
         document.getElementById("idea-input").value = "";
         document.getElementById("markdown-output").innerText = "Vui lòng nhập liệu ở các ô bên trái để tạo cấu trúc prompt...";
+
+        // Bật/tắt các panel phụ theo nhóm công việc hiện tại (kèm reset dữ liệu tạm)
+        this.updateContextPanels();
+    },
+
+    // Hiện ngữ cảnh nâng cao ở nhóm code (vibe/problem) và ảnh tham chiếu ở nhóm media,
+    // đồng thời xóa dữ liệu tạm để không mang sang nhóm khác.
+    updateContextPanels() {
+        const showContext = this.CONTEXT_CATEGORIES.includes(this.currentCategory);
+        const advanced = document.getElementById("advanced-context");
+        advanced.classList.toggle("hidden", !showContext);
+        if (!showContext) advanced.removeAttribute("open");
+        document.getElementById("context-architecture").value = "";
+        document.getElementById("context-tech").value = "";
+
+        const showReference = this.currentCategory === "media";
+        document.getElementById("reference-panel").classList.toggle("hidden", !showReference);
+        this.referenceImages = [];
+        this.renderReferenceThumbs();
     },
 
     // --- XÂY DỰNG PROMPT CHẤT LƯỢNG CAO GỬI CHO AI ---
-    buildSuggestionPrompt(idea, categoryData) {
+    buildSuggestionPrompt(idea, categoryData, extras = {}) {
         const fieldSpecs = categoryData.fields
             .map(f => `- "${f.id}" (${f.label}): ${f.desc} Ví dụ tham khảo: ${f.ex}`)
             .join("\n");
+
+        // Ngữ cảnh kỹ thuật bổ sung (kiến trúc + công nghệ) — chỉ dùng để AI bám sát, không bắt buộc có
+        let contextBlock = "";
+        const archi = (extras.architecture || "").trim();
+        const tech = (extras.tech || "").trim();
+        if (archi || tech) {
+            contextBlock = "\n\nNGỮ CẢNH KỸ THUẬT BỔ SUNG (bám sát khi viết, đây là ràng buộc thật của dự án):";
+            if (archi) contextBlock += `\n- Kiến trúc ứng dụng: ${archi}`;
+            if (tech) contextBlock += `\n- Công nghệ sử dụng: ${tech}`;
+        }
+
+        // Khi có ảnh tham chiếu (nhóm media): yêu cầu AI phân tích ảnh để trích đặc trưng thị giác
+        const imageBlock = extras.hasImages
+            ? "\n\nẢNH THAM CHIẾU: Người dùng đã đính kèm ảnh tham chiếu. Hãy phân tích kỹ để trích xuất phong cách nghệ thuật, bố cục/khung hình, bảng màu, nguồn sáng & không khí, rồi phản ánh chính xác các đặc trưng đó vào các thành phần tương ứng."
+            : "";
 
         return `Bạn là chuyên gia Prompt Engineering cấp cao, chuyên thiết kế prompt chất lượng sản xuất (production-grade) cho các mô hình AI.
 
 NHIỆM VỤ: Từ ý tưởng thô của người dùng, viết nội dung CHI TIẾT và CHUYÊN NGHIỆP cho từng thành phần của một prompt thuộc nhóm công việc: "${categoryData.title}".
 
-Ý TƯỞNG GỐC CỦA NGƯỜI DÙNG: "${idea}"
+Ý TƯỞNG GỐC CỦA NGƯỜI DÙNG: "${idea}"${contextBlock}${imageBlock}
 
 CÁC THÀNH PHẦN CẦN VIẾT:
 ${fieldSpecs}
@@ -417,14 +463,19 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
 
         const categoryData = PROMPT_STRUCTURES[this.currentCategory];
         const requestedCategory = this.currentCategory; // Chống ghi đè khi người dùng đổi tab giữa chừng
-        const prompt = this.buildSuggestionPrompt(idea, categoryData);
+        const images = this.currentCategory === "media" ? this.referenceImages.slice() : [];
+        const prompt = this.buildSuggestionPrompt(idea, categoryData, {
+            architecture: this.CONTEXT_CATEGORIES.includes(this.currentCategory) ? document.getElementById("context-architecture").value : "",
+            tech: this.CONTEXT_CATEGORIES.includes(this.currentCategory) ? document.getElementById("context-tech").value : "",
+            hasImages: images.length > 0
+        });
 
         this.setSuggestingState(true);
 
         try {
             const rawText = provider === "gemini"
-                ? await this.callGemini(prompt)
-                : await this.callOllama(prompt);
+                ? await this.callGemini(prompt, images)
+                : await this.callOllama(prompt, images);
 
             const suggestions = this.parseJSONSafely(rawText);
             if (!suggestions) {
@@ -448,10 +499,17 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
 
     // --- GỌI GEMINI API VỚI CƠ CHẾ LUÂN PHIÊN KEY ---
     // Key lỗi -> tự thử key kế tiếp. Đủ 10 lượt thành công -> chủ động chuyển key.
-    async callGemini(promptText) {
+    async callGemini(promptText, images = []) {
         const keys = this.settings.geminiKeys;
         const total = keys.length;
         let lastError = null;
+
+        // Ghép ảnh tham chiếu (nếu có) vào parts dưới dạng inline_data để Gemini phân tích đa phương thức
+        const parts = [{ text: promptText }];
+        images.forEach(dataUrl => {
+            const parsed = this.parseDataUrl(dataUrl);
+            if (parsed) parts.push({ inline_data: { mime_type: parsed.mimeType, data: parsed.base64 } });
+        });
 
         for (let attempt = 0; attempt < total; attempt++) {
             const index = (this.settings.activeKeyIndex + attempt) % total;
@@ -460,7 +518,7 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: promptText }] }],
+                        contents: [{ parts }],
                         generationConfig: {
                             responseMimeType: "application/json",
                             temperature: 0.7
@@ -510,16 +568,24 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
     },
 
     // --- GỌI OLLAMA LOCAL (gemma4) ---
-    async callOllama(promptText) {
+    async callOllama(promptText, images = []) {
+        // Ollama /api/generate nhận ảnh qua mảng "images" là chuỗi base64 (bỏ tiền tố data:)
+        const base64Images = images
+            .map(dataUrl => (this.parseDataUrl(dataUrl) || {}).base64)
+            .filter(Boolean);
+
+        const payload = {
+            model: AI_CONFIG.ollama.model,
+            prompt: promptText,
+            format: "json",
+            stream: false
+        };
+        if (base64Images.length) payload.images = base64Images;
+
         const response = await fetch(AI_CONFIG.ollama.endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: AI_CONFIG.ollama.model,
-                prompt: promptText,
-                format: "json",
-                stream: false
-            })
+            body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
@@ -575,14 +641,22 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
         }
     },
 
-    // Cập nhật trạng thái nút gợi ý (đang tải / sẵn sàng)
-    setSuggestingState(loading) {
+    // Cập nhật trạng thái khi gọi AI (đang tải / sẵn sàng). mode: "suggest" | "optimize"
+    // quyết định nút nào hiển thị spinner; cả hai nút đều bị khóa để tránh gọi chồng.
+    setSuggestingState(loading, mode = "suggest") {
         this.isSuggesting = loading;
-        const btn = document.getElementById("btn-suggest");
-        btn.disabled = loading;
-        btn.innerHTML = loading
+        const suggestBtn = document.getElementById("btn-suggest");
+        const optimizeBtn = document.getElementById("btn-optimize");
+
+        suggestBtn.disabled = loading;
+        optimizeBtn.disabled = loading;
+
+        suggestBtn.innerHTML = (loading && mode === "suggest")
             ? `<span class="spinner"></span> Đang gợi ý...`
             : `✨ Gợi ý bằng AI`;
+        optimizeBtn.innerHTML = (loading && mode === "optimize")
+            ? `<span class="spinner"></span> Đang tối ưu...`
+            : `🪄 Tối ưu / Sửa lỗi`;
     },
 
     // Thu thập dữ liệu từ các ô và build ra cấu trúc Markdown chuẩn tiếng Việt
@@ -940,9 +1014,8 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
     // Nén ảnh phía client trước khi tải lên: giữ nguyên tỉ lệ khung hình gốc (không crop vuông),
     // giới hạn cạnh dài nhất ~800px, xuất JPEG chất lượng vừa phải để dung lượng luôn nhỏ gọn.
     // createImageBitmap với imageOrientation "from-image" tự sửa xoay ảnh theo EXIF.
-    async compressImageFile(file) {
+    async compressImageFile(file, maxSide = 800) {
         const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-        const maxSide = 800;
         let { width, height } = bitmap;
         if (width > maxSide || height > maxSide) {
             const scale = maxSide / Math.max(width, height);
@@ -977,6 +1050,190 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
             console.error(err);
             this.showToast("Không xử lý được ảnh này, hãy thử ảnh khác.", "error");
         }
+    },
+
+    // Tách dataURL "data:image/jpeg;base64,XXXX" thành { mimeType, base64 } để gửi lên AI đa phương thức
+    parseDataUrl(dataUrl) {
+        const match = /^data:([a-zA-Z0-9.+/-]+);base64,(.+)$/.exec(dataUrl || "");
+        if (!match) return null;
+        return { mimeType: match[1], base64: match[2] };
+    },
+
+    // --- ẢNH THAM CHIẾU (nhóm media): kéo-thả / chọn file, nén client, KHÔNG lưu server ---
+    setupReferenceImages() {
+        const dropzone = document.getElementById("reference-dropzone");
+        const fileInput = document.getElementById("reference-image-input");
+
+        dropzone.addEventListener("click", () => fileInput.click());
+        fileInput.addEventListener("change", (e) => {
+            this.handleReferenceFiles(e.target.files);
+            e.target.value = ""; // reset để chọn lại đúng file cũ vẫn kích hoạt change
+        });
+
+        ["dragenter", "dragover"].forEach(evt => dropzone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            dropzone.classList.add("dragover");
+        }));
+        ["dragleave", "drop"].forEach(evt => dropzone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            dropzone.classList.remove("dragover");
+        }));
+        dropzone.addEventListener("drop", (e) => {
+            if (e.dataTransfer && e.dataTransfer.files) this.handleReferenceFiles(e.dataTransfer.files);
+        });
+    },
+
+    async handleReferenceFiles(fileList) {
+        const files = Array.from(fileList || []).filter(f => f.type.startsWith("image/"));
+        if (!files.length) return;
+
+        const slots = this.MAX_REFERENCE_IMAGES - this.referenceImages.length;
+        if (slots <= 0) {
+            this.showToast(`Chỉ nhận tối đa ${this.MAX_REFERENCE_IMAGES} ảnh tham chiếu.`, "error");
+            return;
+        }
+
+        for (const file of files.slice(0, slots)) {
+            try {
+                const dataUrl = await this.compressImageFile(file, 1024); // độ phân giải cao hơn để AI phân tích tốt
+                this.referenceImages.push(dataUrl);
+            } catch (err) {
+                console.error(err);
+                this.showToast("Không xử lý được một ảnh, hãy thử ảnh khác.", "error");
+            }
+        }
+        if (files.length > slots) {
+            this.showToast(`Đã đạt tối đa ${this.MAX_REFERENCE_IMAGES} ảnh, các ảnh dư bị bỏ qua.`, "error");
+        }
+        this.renderReferenceThumbs();
+    },
+
+    renderReferenceThumbs() {
+        const container = document.getElementById("reference-thumbs");
+        if (!container) return;
+        container.innerHTML = "";
+
+        this.referenceImages.forEach((dataUrl, index) => {
+            const thumb = document.createElement("div");
+            thumb.className = "reference-thumb";
+
+            const img = document.createElement("img");
+            img.src = dataUrl;
+            img.alt = `Ảnh tham chiếu ${index + 1}`;
+
+            const removeBtn = document.createElement("button");
+            removeBtn.type = "button";
+            removeBtn.className = "reference-remove";
+            removeBtn.title = "Xóa ảnh này";
+            removeBtn.textContent = "✕";
+            removeBtn.addEventListener("click", (e) => {
+                e.stopPropagation(); // tránh mở hộp thoại chọn file của dropzone
+                this.referenceImages.splice(index, 1);
+                this.renderReferenceThumbs();
+            });
+
+            thumb.appendChild(img);
+            thumb.appendChild(removeBtn);
+            container.appendChild(thumb);
+        });
+
+        // Ẩn gợi ý "thêm ảnh" khi đã đủ số lượng tối đa
+        const hint = document.querySelector("#reference-dropzone .reference-hint");
+        if (hint) hint.classList.toggle("hidden", this.referenceImages.length >= this.MAX_REFERENCE_IMAGES);
+    },
+
+    // --- TỐI ƯU / SỬA LỖI PROMPT: nhờ AI phê bình & viết lại các trường hiện có ---
+    async optimizePrompt() {
+        if (this.isSuggesting) return;
+
+        const provider = this.settings.provider;
+        if (provider === "ollama" && location.protocol === "file:") {
+            this.showToast("Không dùng được Ollama khi mở file trực tiếp. Hãy chạy ứng dụng bằng file start-app.bat!", "error");
+            return;
+        }
+        if (provider === "gemini" && this.settings.geminiKeys.length === 0) {
+            this.showToast("Bạn chưa thêm API key Gemini. Hãy thêm key trong Cài đặt!", "error");
+            this.openSettings();
+            return;
+        }
+
+        const categoryData = PROMPT_STRUCTURES[this.currentCategory];
+        const requestedCategory = this.currentCategory;
+
+        // Gom nội dung hiện có của từng trường
+        const current = {};
+        let hasAny = false;
+        categoryData.fields.forEach(field => {
+            const value = (document.getElementById(`field-${field.id}`).value || "").trim();
+            current[field.id] = value;
+            if (value) hasAny = true;
+        });
+        if (!hasAny) {
+            this.showToast("Chưa có nội dung prompt để tối ưu. Hãy điền hoặc gợi ý trước!", "error");
+            return;
+        }
+
+        const images = this.currentCategory === "media" ? this.referenceImages.slice() : [];
+        const prompt = this.buildOptimizePrompt(current, categoryData, {
+            architecture: this.CONTEXT_CATEGORIES.includes(this.currentCategory) ? document.getElementById("context-architecture").value : "",
+            tech: this.CONTEXT_CATEGORIES.includes(this.currentCategory) ? document.getElementById("context-tech").value : "",
+            hasImages: images.length > 0
+        });
+
+        this.setSuggestingState(true, "optimize");
+        try {
+            const rawText = provider === "gemini"
+                ? await this.callGemini(prompt, images)
+                : await this.callOllama(prompt, images);
+
+            const improved = this.parseJSONSafely(rawText);
+            if (!improved) throw new Error("Không đọc được dữ liệu JSON từ model");
+            if (this.currentCategory !== requestedCategory) return;
+
+            this.applySuggestions(improved, categoryData);
+        } catch (err) {
+            console.error("Lỗi tối ưu prompt:", err);
+            const message = provider === "gemini"
+                ? "Gọi Gemini thất bại trên tất cả API key. Kiểm tra key trong Cài đặt và kết nối mạng."
+                : `Không kết nối được Ollama (${AI_CONFIG.ollama.model}). Kiểm tra Ollama đang chạy tại localhost:11434.`;
+            this.showToast(message, "error");
+        } finally {
+            this.setSuggestingState(false);
+        }
+    },
+
+    // Prompt yêu cầu AI phê bình & viết lại từng trường tốt hơn dựa trên nội dung hiện có
+    buildOptimizePrompt(current, categoryData, extras = {}) {
+        const fieldSpecs = categoryData.fields
+            .map(f => `- "${f.id}" (${f.label}): ${f.desc}\n  Nội dung hiện tại: ${current[f.id] ? `"${current[f.id]}"` : "(đang để trống)"}`)
+            .join("\n");
+
+        let contextBlock = "";
+        const archi = (extras.architecture || "").trim();
+        const tech = (extras.tech || "").trim();
+        if (archi || tech) {
+            contextBlock = "\n\nNGỮ CẢNH KỸ THUẬT BỔ SUNG (bám sát khi viết lại):";
+            if (archi) contextBlock += `\n- Kiến trúc ứng dụng: ${archi}`;
+            if (tech) contextBlock += `\n- Công nghệ sử dụng: ${tech}`;
+        }
+        const imageBlock = extras.hasImages
+            ? "\n\nẢNH THAM CHIẾU: Người dùng đã đính kèm ảnh tham chiếu. Đối chiếu để đảm bảo phong cách, bố cục, màu sắc và ánh sáng trong prompt khớp với ảnh."
+            : "";
+
+        return `Bạn là chuyên gia Prompt Engineering cấp cao, chuyên rà soát và nâng cấp prompt lên chất lượng sản xuất (production-grade).
+
+NHIỆM VỤ: Rà soát prompt hiện có cho nhóm công việc "${categoryData.title}", phát hiện điểm yếu (mơ hồ, thiếu số liệu, thiếu ràng buộc, thiếu nhất quán) và VIẾT LẠI từng thành phần cho tốt hơn — giữ đúng ý định gốc, chỉ làm rõ và nâng chất.${contextBlock}${imageBlock}
+
+CÁC THÀNH PHẦN CẦN RÀ SOÁT & VIẾT LẠI:
+${fieldSpecs}
+
+YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
+1. Viết bằng tiếng Việt, mỗi thành phần 3-6 câu, giàu thông tin và đi thẳng vào trọng tâm.
+2. Cụ thể hóa tối đa: dùng con số, tiêu chí đo lường được và thuật ngữ chuyên ngành chính xác. TUYỆT ĐỐI tránh từ chung chung như "chất lượng cao", "tối ưu", "đẹp".
+3. Giữ đúng ý định và chủ đề gốc của người dùng — không đổi hướng. Với trường đang trống, hãy viết mới cho phù hợp và nhất quán với các trường khác.
+4. Các thành phần phải bổ trợ lẫn nhau, ghép lại thành một prompt hoàn chỉnh dùng được ngay.
+
+ĐỊNH DẠNG ĐẦU RA: Chỉ trả về DUY NHẤT một JSON object hợp lệ với đúng các khóa: ${categoryData.fields.map(f => `"${f.id}"`).join(", ")}. Giá trị là chuỗi văn bản thuần tiếng Việt. Không thêm lời giải thích, không markdown, không code fence.`;
     },
 
     // Tiện ích Toast thông báo trạng thái UX phản hồi nhanh
