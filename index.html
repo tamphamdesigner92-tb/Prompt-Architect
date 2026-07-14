@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Architect - Trợ Lý Khởi Tạo Prompt Chuyên Nghiệp</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="toast-container"></div>
+
+    <div id="welcome-screen" class="screen active">
+        <div class="glass-card welcome-card">
+            <h1 id="greeting-text">Chào bạn</h1>
+            <div id="name-input-container" class="hidden">
+                <p class="subtitle">Hình như đây là lần đầu bạn ghé thăm. Hãy để lại tên để tiện xưng hô nhé:</p>
+                <div class="input-group">
+                    <input type="text" id="user-name-input" placeholder="Nhập tên của bạn... (Ví dụ: Tâm Phạm)" autocomplete="off">
+                    <button id="btn-save-name" class="btn-primary">Bắt đầu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-screen" class="screen">
+        <header class="glass-header">
+            <div class="logo">Prompt Architect</div>
+            <nav class="category-menu">
+                <button class="menu-item active" data-category="vibe">Vibe Coding</button>
+                <button class="menu-item" data-category="problem">Giải Quyết Lỗi & Tối Ưu</button>
+                <button class="menu-item" data-category="content">Sáng Tạo Nội Dung</button>
+                <button class="menu-item" data-category="media">Sáng Tạo Ảnh/Video</button>
+                <button class="menu-item" data-category="analysis">Phân Tích Dữ Liệu</button>
+            </nav>
+            <div class="header-actions">
+                <div id="user-profile-tag" class="user-tag"></div>
+                <button id="btn-open-history" class="btn-icon" title="Lịch sử prompt">🕘</button>
+                <button id="btn-open-saved" class="btn-icon" title="Thư viện lưu trữ">⭐</button>
+                <button id="btn-open-settings" class="btn-icon" title="Cài đặt AI">⚙️</button>
+            </div>
+        </header>
+
+        <main class="workspace">
+            <section class="input-panel glass-card">
+                <h2 id="current-category-title">Cấu trúc Prompt</h2>
+
+                <div class="idea-box">
+                    <label for="idea-input">💡 Ý tưởng ban đầu của bạn</label>
+                    <span class="field-desc">Mô tả ngắn gọn ý tưởng, AI sẽ tự động gợi ý nội dung cho các trường bên dưới. Bạn có thể chỉnh sửa lại sau.</span>
+                    <div class="idea-input-row">
+                        <textarea id="idea-input" rows="2" placeholder="Ví dụ: Tôi muốn phân tích dữ liệu bán hàng để tìm sản phẩm chủ lực..."></textarea>
+                        <button id="btn-suggest" class="btn-primary">✨ Gợi ý bằng AI</button>
+                    </div>
+                </div>
+
+                <form id="dynamic-prompt-form">
+                    </form>
+            </section>
+
+            <section class="output-panel glass-card">
+                <div class="output-header">
+                    <h2>Kết Quả Prompt (Markdown)</h2>
+                    <div class="output-actions">
+                        <button id="btn-save-prompt" class="btn-secondary">💾 Lưu</button>
+                        <button id="btn-copy-prompt" class="btn-secondary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            Sao chép
+                        </button>
+                    </div>
+                </div>
+                <div class="output-container">
+                    <pre><code id="markdown-output">Vui lòng nhập liệu ở các ô bên trái để tạo cấu trúc prompt...</code></pre>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="glass-card settings-card">
+            <div class="settings-header">
+                <h2>⚙️ Cài đặt AI</h2>
+                <button id="btn-close-settings" class="btn-icon" title="Đóng">✕</button>
+            </div>
+
+            <div class="settings-section">
+                <label class="settings-label">Nhà cung cấp AI</label>
+                <div class="provider-options">
+                    <label class="provider-option">
+                        <input type="radio" name="ai-provider" value="gemini" checked>
+                        <div class="provider-info">
+                            <strong>Gemini API</strong>
+                            <span>Chất lượng cao, phản hồi nhanh, cần API key (mặc định)</span>
+                        </div>
+                    </label>
+                    <label class="provider-option">
+                        <input type="radio" name="ai-provider" value="ollama">
+                        <div class="provider-info">
+                            <strong>Ollama — gemma4:e4b</strong>
+                            <span>Chạy local miễn phí, không cần mạng, chậm hơn (30-60 giây)</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <label class="settings-label">Danh sách API Key Gemini</label>
+                <span class="field-desc">Thêm nhiều key để tự luân phiên: sau mỗi 10 lượt gợi ý hoặc khi key không phản hồi, ứng dụng tự chuyển sang key kế tiếp. Lấy key miễn phí tại aistudio.google.com</span>
+                <div class="key-input-row">
+                    <input type="text" id="new-gemini-key" placeholder="Dán API key Gemini vào đây..." autocomplete="off">
+                    <button id="btn-add-key" class="btn-primary">Thêm</button>
+                </div>
+                <ul id="gemini-key-list"></ul>
+                <span id="key-rotation-status" class="field-desc"></span>
+            </div>
+        </div>
+    </div>
+
+    <div id="history-modal" class="modal-overlay hidden">
+        <div class="glass-card settings-card">
+            <div class="settings-header">
+                <h2>🕘 Lịch sử prompt</h2>
+                <button id="btn-close-history" class="btn-icon" title="Đóng">✕</button>
+            </div>
+            <span class="field-desc">Tự động lưu lại ý tưởng và prompt đã tạo, giữ tối đa 50 mục gần nhất.</span>
+            <ul id="history-list" class="entry-list"></ul>
+        </div>
+    </div>
+
+    <div id="saved-modal" class="modal-overlay hidden">
+        <div class="glass-card settings-card">
+            <div class="settings-header">
+                <h2>⭐ Thư viện lưu trữ</h2>
+                <button id="btn-close-saved" class="btn-icon" title="Đóng">✕</button>
+            </div>
+            <div class="saved-tabs">
+                <button class="saved-tab-btn active" data-tab="saved">Đã lưu</button>
+                <button class="saved-tab-btn" data-tab="trash">🗑️ Thùng rác</button>
+            </div>
+            <ul id="saved-list" class="entry-list"></ul>
+            <ul id="trash-list" class="entry-list hidden"></ul>
+            <input type="file" id="saved-image-input" accept="image/*" class="hidden">
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
