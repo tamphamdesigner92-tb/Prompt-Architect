@@ -27,7 +27,7 @@
 ## Luồng hoạt động chính
 
 1. **Màn hình chào mừng** (`#welcome-screen`): lần đầu hỏi tên người dùng, lưu vào `localStorage` (khóa `prompt_user_name`). Các lần sau chào theo tên rồi tự chuyển sang màn hình chính sau 2.2 giây.
-2. **Màn hình chính** (`#main-screen`): header chứa menu 5 nhóm công việc (segmented control). Workspace chia 2 cột:
+2. **Màn hình chính** (`#main-screen`): header chứa menu 6 nhóm công việc (segmented control). Workspace chia 2 cột:
    - **Cột trái** (`.input-panel`): ô nhập ý tưởng ban đầu (`.idea-box`) + form các trường được sinh động từ `PROMPT_STRUCTURES`.
    - **Cột phải** (`.output-panel`): kết quả Markdown cập nhật real-time khi gõ, kèm nút Sao chép.
 3. **Gợi ý bằng AI**: người dùng nhập ý tưởng → bấm "✨ Gợi ý bằng AI" (hoặc Ctrl+Enter) → gửi ý tưởng + ngữ cảnh nhóm công việc đến Ollama → nhận JSON → tự điền vào các trường (người dùng sửa lại được).
@@ -37,7 +37,7 @@
 Tất cả nằm trong 2 khối chính:
 
 ### `PROMPT_STRUCTURES` (hằng số đầu file)
-Database tĩnh định nghĩa 5 nhóm công việc. Mỗi nhóm có `title` và mảng `fields`; mỗi field gồm `{ id, label, desc, ex }`.
+Database tĩnh định nghĩa 6 nhóm công việc. Mỗi nhóm có `title` và mảng `fields`; mỗi field gồm `{ id, label, desc, ex }`.
 
 | Khóa | Nhóm công việc |
 |------|----------------|
@@ -46,6 +46,7 @@ Database tĩnh định nghĩa 5 nhóm công việc. Mỗi nhóm có `title` và 
 | `content` | Sáng Tạo Nội Dung & Copywriting |
 | `media` | Sáng Tạo Ảnh & Video (Gen-AI) |
 | `analysis` | Phân Tích Dữ Liệu & Trích Xuất Insight |
+| `research` | Nghiên Cứu Chuyên Sâu Một Chủ Đề |
 
 **Thêm nhóm mới:** thêm 1 entry vào `PROMPT_STRUCTURES` + 1 nút `.menu-item` với `data-category` tương ứng trong `index.html`. Không cần sửa gì khác — form, output và AI gợi ý đều đọc động từ cấu trúc này.
 

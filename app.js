@@ -57,6 +57,17 @@ const PROMPT_STRUCTURES = {
             { id: "method", label: "4. Phương Pháp & Công Cụ", desc: "Chỉ định kỹ thuật thống kê, ngôn ngữ hoặc công cụ được phép dùng.", ex: "Python với pandas và matplotlib, phân tích xu hướng theo mùa vụ, hồi quy tuyến tính." },
             { id: "output", label: "5. Định Dạng Kết Quả Đầu Ra", desc: "Hình thức trình bày kết quả bạn mong muốn nhận được.", ex: "Bảng tóm tắt số liệu, biểu đồ trực quan và 5 insight quan trọng kèm khuyến nghị hành động." }
         ]
+    },
+    research: {
+        title: "Nghiên Cứu Chuyên Sâu Một Chủ Đề",
+        fields: [
+            { id: "role", label: "1. Vai Trò Chuyên Gia Nghiên Cứu", desc: "Quy định chuyên môn, lĩnh vực và tư duy phản biện của AI.", ex: "Nhà nghiên cứu độc lập chuyên ngành kinh tế số, có kinh nghiệm rà soát tài liệu học thuật (literature review)." },
+            { id: "scope", label: "2. Chủ Đề & Phạm Vi Nghiên Cứu", desc: "Chủ đề cụ thể, giới hạn thời gian/địa lý/ngành và những gì loại trừ khỏi phạm vi.", ex: "Tác động của AI tạo sinh lên ngành thiết kế đồ họa Việt Nam giai đoạn 2023-2025; không xét mảng game và phim hoạt hình." },
+            { id: "questions", label: "3. Câu Hỏi Nghiên Cứu Cốt Lõi", desc: "3-5 câu hỏi cụ thể, đo lường được, tránh hỏi chung chung.", ex: "Tỷ lệ designer đã dùng AI trong quy trình? Nhóm kỹ năng nào bị thay thế nhanh nhất? Mức giá dịch vụ thay đổi ra sao?" },
+            { id: "sources", label: "4. Nguồn Tham Khảo & Tiêu Chí Tin Cậy", desc: "Loại nguồn được ưu tiên, năm xuất bản tối thiểu và yêu cầu đối chiếu chéo.", ex: "Ưu tiên báo cáo ngành và khảo sát có mẫu từ 500 người trở lên, xuất bản từ 2023; mỗi số liệu phải đối chiếu tối thiểu 2 nguồn độc lập." },
+            { id: "method", label: "5. Phương Pháp Phân Tích & Lập Luận", desc: "Kỹ thuật phân tích, cách xử lý mâu thuẫn giữa các nguồn và mức độ chắc chắn.", ex: "So sánh đối chiếu đa nguồn, phân tích nguyên nhân - hệ quả, nêu rõ điểm còn tranh cãi và mức độ tin cậy của từng kết luận." },
+            { id: "output", label: "6. Định Dạng Báo Cáo & Trích Dẫn", desc: "Cấu trúc báo cáo, kiểu trích dẫn và yêu cầu ghi nguồn.", ex: "Tóm tắt điều hành khoảng 200 từ, thân bài theo từng câu hỏi, mục hạn chế nghiên cứu; mọi số liệu ghi nguồn kèm link." }
+        ]
     }
 };
 
