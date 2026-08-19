@@ -3,8 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "description": "Prompt Architect - server tĩnh + API lưu trữ lịch sử/prompt",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "setup": "node setup.js"
   },
   "dependencies": {
     "express": "^4.19.2"

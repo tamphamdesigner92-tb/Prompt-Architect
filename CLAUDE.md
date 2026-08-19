@@ -8,7 +8,7 @@
 
 **Stack:** Frontend là HTML + CSS thuần + JavaScript gốc (Vanilla JS) — **không framework, không build step**. Backend là một server **Node/Express tối giản** (`server.js`, dependency duy nhất là `express`) chỉ để phục vụ file tĩnh và cung cấp API lưu trữ dữ liệu (lịch sử prompt, thư viện lưu trữ + ảnh, thùng rác) thành file thật trong thư mục `data/` — điều mà JS thuần trong trình duyệt không tự làm được. Không thêm framework/thư viện phía frontend.
 
-**Cách chạy:** lần đầu cần `npm install` (tự động nếu chạy qua `start-app.bat`/`start-app.sh`), sau đó dùng `start-app.bat` (hoặc `npm start`) để khởi động server tại cổng 8931 rồi mở trình duyệt. **KHÔNG mở `index.html` trực tiếp bằng file://** — Ollama chặn origin `null` (403 Forbidden) nên tính năng AI gợi ý sẽ không hoạt động; app có guard phát hiện `file:` và báo người dùng dùng start-app.bat.
+**Cách chạy:** chỉ cần chạy `start-app.bat` (Windows) hoặc `start-app.sh` (macOS/Linux/Git Bash) — script tự cài Node.js nếu thiếu, rồi gọi `setup.js` để cài thư viện, tạo thư mục `data/` và kiểm tra cổng, sau đó khởi động server tại cổng 8931 và mở trình duyệt. Yêu cầu tối thiểu **Node.js 18+**. Chạy lại riêng phần cài đặt: `npm run setup`; chỉ chẩn đoán mà không cài: `node setup.js --check`. **KHÔNG mở `index.html` trực tiếp bằng file://** — Ollama chặn origin `null` (403 Forbidden) nên tính năng AI gợi ý sẽ không hoạt động; app có guard phát hiện `file:` và báo người dùng dùng start-app.bat.
 
 ## Cấu trúc file
 
@@ -18,10 +18,12 @@
 | `app.js` | Toàn bộ logic frontend: dữ liệu cấu trúc prompt, state, sự kiện, gọi Ollama/Gemini, gọi API lịch sử/lưu trữ |
 | `style.css` | Toàn bộ style: theme theo giờ, glassmorphism, responsive |
 | `server.js` | Backend Express: phục vụ file tĩnh + API `/api/history`, `/api/saved`, `/api/trash`, đọc/ghi `data/` |
-| `package.json` | Khai báo dependency duy nhất: `express` |
+| `package.json` | Khai báo dependency duy nhất (`express`), ngưỡng `engines.node >= 18` và script `start`/`setup` |
+| `setup.js` | Chuẩn bị môi trường: kiểm tra phiên bản Node, cài thư viện (`npm ci`, lùi về `npm install` nếu lock lệch), tạo `data/images/`, kiểm tra cổng 8931, in báo cáo. Gọi bởi cả hai file `start-app.*` |
 | `data/` (gitignored, tự tạo lúc chạy) | `history.json`, `library.json` (prompt đã lưu + đã xoá), `images/<id>.jpg` |
-| `start-app.bat` | Khởi động chuẩn (Windows): `npm install` (nếu cần) + `npm start` + mở trình duyệt |
-| `start-app.sh` | Tương tự cho Git Bash/macOS/Linux (Ctrl+C để tắt server) |
+| `start-app.bat` | Khởi động chuẩn (Windows): tự cài Node.js qua `winget` nếu thiếu + `node setup.js` + `npm start` + mở trình duyệt |
+| `start-app.sh` | Tương tự cho macOS/Linux/Git Bash: tự cài Node.js qua Homebrew (macOS) nếu thiếu (Ctrl+C để tắt server). **Bắt buộc lưu bằng LF** — CRLF sẽ làm script chết trên macOS |
+| `.gitattributes` | Khoá ký tự xuống dòng: `*.sh` = LF, `*.bat` = CRLF |
 | `.claude/launch.json` | Cấu hình preview: `npm start` cổng 8931 |
 
 ## Luồng hoạt động chính

@@ -6,7 +6,12 @@
 #  Server là Node/Express (server.js) - phục vụ file tĩnh +
 #  API lưu lịch sử/prompt/thùng rác trong thư mục data/
 #
-#  Dùng được trên: Git Bash (Windows), macOS, Linux
+#  Lần đầu chạy: tự cài Node.js (macOS có Homebrew) + tự cài thư
+#  viện qua setup.js. Không cần làm gì thủ công.
+#
+#  Dùng được trên: macOS, Linux, Git Bash (Windows)
+#  Lưu ý macOS/Linux: lần đầu cần cấp quyền chạy một lần
+#      chmod +x start-app.sh
 # ============================================================
 cd "$(dirname "$0")"
 
@@ -40,20 +45,55 @@ finish() {
 }
 trap finish EXIT
 
-# --- Kiểm tra node/npm có sẵn không, báo lỗi rõ ràng thay vì im lặng thoát ---
-if ! command -v node >/dev/null 2>&1 || ! command -v npm >/dev/null 2>&1; then
+# --- Chưa có Node.js thì tự cài (macOS), hoặc hướng dẫn cụ thể theo hệ điều hành ---
+if ! command -v node >/dev/null 2>&1; then
     echo ""
-    echo "❌ Không tìm thấy Node.js/npm trong PATH."
-    echo "   Kiểm tra Node.js đã cài chưa: https://nodejs.org (hoặc 'brew install node')."
+    echo "Không tìm thấy Node.js."
+    case "$(uname -s)" in
+        Darwin*)
+            if command -v brew >/dev/null 2>&1; then
+                echo "Đang cài Node.js bằng Homebrew..."
+                brew install node
+                if ! command -v node >/dev/null 2>&1; then
+                    echo "❌ Cài xong nhưng vẫn chưa thấy Node.js trong PATH."
+                    echo "   Hãy đóng cửa sổ Terminal này, mở lại rồi chạy lại ./start-app.sh"
+                    exit 1
+                fi
+                echo "✅ Đã cài xong Node.js."
+            else
+                echo "❌ Máy chưa có Homebrew nên không thể tự cài."
+                echo "   Cách 1 - cài Homebrew trước (dán lệnh sau vào Terminal):"
+                echo '     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+                echo "     rồi chạy: brew install node"
+                echo "   Cách 2 - tải bộ cài Node.js LTS tại https://nodejs.org"
+                exit 1
+            fi
+            ;;
+        MINGW*|MSYS*|CYGWIN*)
+            echo "❌ Trên Windows hãy chạy file start-app.bat (nó tự cài Node.js giúp bạn)."
+            exit 1
+            ;;
+        *)
+            echo "❌ Hãy cài Node.js 18 trở lên bằng một trong các lệnh sau (cần quyền sudo):"
+            echo "     Ubuntu/Debian : sudo apt install nodejs npm"
+            echo "     Fedora        : sudo dnf install nodejs npm"
+            echo "     Arch          : sudo pacman -S nodejs npm"
+            echo "   Hoặc tải tại https://nodejs.org"
+            exit 1
+            ;;
+    esac
+fi
+
+if ! command -v npm >/dev/null 2>&1; then
+    echo ""
+    echo "❌ Tìm thấy Node.js nhưng không thấy npm trong PATH."
+    echo "   Hãy cài lại Node.js: https://nodejs.org (hoặc 'brew install node')."
     echo "   PATH hiện tại: $PATH"
     exit 1
 fi
 
-# Lần đầu chạy (hoặc sau khi xóa node_modules) thì cài dependencies trước
-if [ ! -d "node_modules" ]; then
-    echo "Lần đầu chạy: đang cài đặt dependencies (npm install)..."
-    npm install
-fi
+# --- Kiểm tra & cài đặt môi trường (thư viện, thư mục data, cổng) ---
+node setup.js || exit 1
 
 npm start &
 SERVER_PID=$!
@@ -80,9 +120,9 @@ if [ "$READY" -ne 1 ]; then
         echo "    Nguyên nhân thường gặp: cổng $PORT đang bị chiếm bởi tiến trình khác."
         echo "    Kiểm tra bằng lệnh: lsof -i :$PORT"
     else
-        echo "    Nguyên nhân thường gặp: chưa cài xong dependencies hoặc lỗi khi khởi động server.js."
+        echo "    Nguyên nhân thường gặp: lỗi khi khởi động server.js."
     fi
-    echo "    Thử chạy tay: npm install && npm start  (rồi mở $URL khi thấy dòng 'đang chạy tại')"
+    echo "    Chạy chẩn đoán môi trường: node setup.js --check"
     echo ""
     exit 1
 fi

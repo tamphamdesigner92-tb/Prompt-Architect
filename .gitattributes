@@ -1,0 +1,11 @@
+# Chuẩn hoá ký tự xuống dòng để script chạy được trên mọi hệ điều hành.
+# Quan trọng: file .sh BẮT BUỘC dùng LF — nếu bị chuyển thành CRLF thì
+# macOS/Linux sẽ báo lỗi "$'\r': command not found" ngay dòng đầu tiên.
+* text=auto
+
+*.sh   text eol=lf
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# Giữ quyền thực thi cho script khởi động trên macOS/Linux
+start-app.sh text eol=lf
