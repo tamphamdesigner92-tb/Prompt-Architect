@@ -3,37 +3,85 @@
     --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --transition-smooth: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
     
-    /* Giao diện mặc định (Sáng) */
-    --bg-gradient: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
-    --glass-bg: rgba(255, 255, 255, 0.4);
-    --glass-border: rgba(255, 255, 255, 0.5);
+    /* Giao diện mặc định (Sáng)
+       Nguyên tắc Apple: nền gần như trung tính, toàn bộ sức màu dồn vào MỘT accent.
+       Màu trong giao diện Apple là thông tin, không phải trang trí — nền rực rỡ sẽ
+       làm accent chìm đi và kéo tương phản chữ xuống dưới ngưỡng đọc được. */
+    --bg-gradient: linear-gradient(135deg, #f5f3f7 0%, #eef2f8 100%);
+    /* Material của Apple đục hơn hẳn glassmorphism thông thường: nó làm mờ nền để
+       TÁCH nội dung, không phải để trưng nền ra. 0.72 = gần regularMaterial. */
+    --glass-bg: rgba(255, 255, 255, 0.72);
+    --glass-border: rgba(60, 60, 67, 0.14);
     --text-primary: #1d1d1f;
-    --text-secondary: #86868b;
+    /* Apple dùng secondaryLabel = rgba(60,60,67,0.60), nhưng chính con số đó chỉ đạt
+       3.3:1 — dưới ngưỡng WCAG 4.5:1. Giữ cấu trúc thang label của Apple, đẩy alpha
+       lên 0.72 để đạt 4.68:1 trên nền mới. */
+    --text-secondary: rgba(60, 60, 67, 0.72);
     --accent-color: #0071e3;
     --shadow-color: rgba(0, 0, 0, 0.08);
+
+    /* --- 4 BẬC FILL HỆ THỐNG CỦA APPLE ---
+       Nền xám trung tính (120,120,128) hoạt động trên CẢ nền sáng và tối, nên mỗi
+       component chỉ cần khai báo một lần — không phải viết lại cho theme evening.
+       App đã dùng đúng bậc này ở segmented control; đây là mở rộng ra toàn bộ UI. */
+    --fill-1: rgba(120, 120, 128, 0.20);
+    --fill-2: rgba(120, 120, 128, 0.16);
+    --fill-3: rgba(120, 120, 128, 0.12);
+    --fill-4: rgba(120, 120, 128, 0.08);
+
+    /* Núm trắng nổi của segmented control (iOS gọi là knob) */
+    --knob-bg: #ffffff;
+    --knob-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+
+    /* Vầng sáng quanh control đang focus + lớp phủ sau modal */
+    --focus-glow: rgba(0, 113, 227, 0.18);
+    --accent-tint: rgba(0, 113, 227, 0.08);
+    --scrim: rgba(0, 0, 0, 0.35);
+
+    /* --- THANG CHỮ ---
+       Trước đây có 10 giá trị font-size tuỳ ý, trong đó 0.8/0.85/0.9/0.95rem nằm
+       sát nhau đến mức khác biệt không còn mang ý nghĩa phân cấp. Gom về 7 bậc,
+       mỗi bậc gắn với một vai trò như cách Apple đặt tên (Title, Headline, Body...).
+       Headline cùng cỡ với Body nhưng nặng hơn — đúng quy ước của Apple. */
+    --text-title-1: 2.5rem;    /* Lời chào màn hình đầu */
+    --text-title-2: 1.3rem;    /* Tiêu đề panel, tiêu đề modal */
+    --text-title-3: 1.2rem;    /* Logo */
+    --text-body: 1rem;         /* Nội dung, input, nhãn trường (kèm weight 600) */
+    --text-subhead: 0.9rem;    /* Nút phụ, mục menu, nội dung card */
+    --text-footnote: 0.8rem;   /* Mô tả trường, chú thích */
+    --text-caption: 0.7rem;    /* Badge */
 }
 
-/* Các Theme tương ứng theo thời gian */
+/* Các Theme tương ứng theo thời gian.
+   Giữ nguyên SẮC (hue) đặc trưng từng buổi, chỉ hạ độ bão hoà xuống mức tint. */
 html[data-theme="morning"] {
-    --bg-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-    --glass-bg: rgba(255, 255, 255, 0.45);
-    --text-primary: #2c1a11;
+    --bg-gradient: linear-gradient(135deg, #faf4ef 0%, #f7efe9 100%);
 }
 
 html[data-theme="afternoon"] {
-    --bg-gradient: linear-gradient(135deg, #b3e5fc 0%, #ffcc80 100%);
-    --glass-bg: rgba(255, 255, 255, 0.4);
-    --text-primary: #1c2833;
+    --bg-gradient: linear-gradient(135deg, #eff4f9 0%, #faf2e8 100%);
 }
 
 html[data-theme="evening"] {
-    --bg-gradient: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
-    --glass-bg: rgba(15, 32, 39, 0.5);
-    --glass-border: rgba(255, 255, 255, 0.15);
+    /* Dark mode kiểu Apple: đen thật, không phải xanh đen */
+    --bg-gradient: linear-gradient(135deg, #000000 0%, #1c1c1e 100%);
+    --glass-bg: rgba(44, 44, 46, 0.72);
+    --glass-border: rgba(255, 255, 255, 0.13);
     --text-primary: #f5f5f7;
-    --text-secondary: #a1a1a6;
+    --text-secondary: rgba(235, 235, 245, 0.60);
     --accent-color: #2997ff;
-    --shadow-color: rgba(0, 0, 0, 0.4);
+    --shadow-color: rgba(0, 0, 0, 0.5);
+
+    /* Trên nền tối: cùng màu xám, alpha cao hơn — đúng thang của Apple */
+    --fill-1: rgba(120, 120, 128, 0.36);
+    --fill-2: rgba(120, 120, 128, 0.32);
+    --fill-3: rgba(120, 120, 128, 0.24);
+    --fill-4: rgba(120, 120, 128, 0.18);
+    --knob-bg: #636366;
+    --knob-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --focus-glow: rgba(41, 151, 255, 0.28);
+    --accent-tint: rgba(41, 151, 255, 0.14);
+    --scrim: rgba(0, 0, 0, 0.6);
 }
 
 /* --- TOÀN CỤC --- */
@@ -109,7 +157,7 @@ body {
 }
 
 #greeting-text {
-    font-size: 2.5rem;
+    font-size: var(--text-title-1);
     font-weight: 700;
     margin-bottom: 1rem;
     letter-spacing: -0.022em; /* Tracking chuẩn tiêu đề lớn của Apple */
@@ -118,13 +166,13 @@ body {
 h2 {
     font-weight: 700;
     letter-spacing: -0.017em;
-    font-size: 1.3rem;
+    font-size: var(--text-title-2);
 }
 
 .subtitle {
     color: var(--text-secondary);
     margin-bottom: 1.5rem;
-    font-size: 1rem;
+    font-size: var(--text-body);
     line-height: 1.5;
 }
 
@@ -138,20 +186,20 @@ h2 {
 input[type="text"], textarea {
     width: 100%;
     padding: 14px 16px;
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: var(--fill-3);
+    border: 1px solid var(--glass-border);
     border-radius: 12px;
     color: var(--text-primary);
     font-family: var(--font-stack);
-    font-size: 1rem;
+    font-size: var(--text-body);
     outline: none;
     transition: all 0.3s ease;
 }
 
 input[type="text"]:focus, textarea:focus {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--fill-2);
     border-color: var(--accent-color);
-    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.15);
+    box-shadow: 0 0 0 4px var(--focus-glow);
 }
 
 .btn-primary {
@@ -159,7 +207,7 @@ input[type="text"]:focus, textarea:focus {
     color: white;
     border: none;
     padding: 14px 24px;
-    font-size: 1rem;
+    font-size: var(--text-body);
     font-weight: 600;
     border-radius: 12px;
     cursor: pointer;
@@ -182,11 +230,11 @@ input[type="text"]:focus, textarea:focus {
 }
 
 .btn-secondary {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--fill-2);
     border: 1px solid var(--glass-border);
     color: var(--text-primary);
     padding: 8px 16px;
-    font-size: 0.9rem;
+    font-size: var(--text-subhead);
     font-weight: 500;
     border-radius: 8px;
     cursor: pointer;
@@ -197,7 +245,7 @@ input[type="text"]:focus, textarea:focus {
 }
 
 .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--fill-1);
 }
 
 /* --- GIAO DIỆN LÀM VIỆC CHÍNH (MAIN WORKSPACE) --- */
@@ -214,15 +262,16 @@ input[type="text"]:focus, textarea:focus {
 
 .logo {
     font-weight: 700;
-    font-size: 1.2rem;
-    letter-spacing: -0.5px;
+    font-size: var(--text-title-3);
+    /* em thay cho px: tracking co giãn cùng cỡ chữ, không lệch khi đổi font-size */
+    letter-spacing: -0.022em;
 }
 
 /* Menu dạng Segmented Control chuẩn iOS/macOS */
 .category-menu {
     display: flex;
     gap: 2px;
-    background: rgba(120, 120, 128, 0.16);
+    background: var(--fill-2);
     border-radius: 999px;
     padding: 3px;
 }
@@ -232,7 +281,7 @@ input[type="text"]:focus, textarea:focus {
     border: none;
     color: var(--text-secondary);
     padding: 7px 15px;
-    font-size: 0.9rem;
+    font-size: var(--text-subhead);
     font-weight: 500;
     border-radius: 999px;
     cursor: pointer;
@@ -246,19 +295,16 @@ input[type="text"]:focus, textarea:focus {
 
 .menu-item.active {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.85);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    background: var(--knob-bg);
+    box-shadow: var(--knob-shadow);
     font-weight: 600;
-}
-
-html[data-theme="evening"] .menu-item.active {
-    background: rgba(255, 255, 255, 0.18);
 }
 
 .user-tag {
-    font-size: 0.85rem;
+    font-size: var(--text-subhead);
     font-weight: 600;
-    opacity: 0.8;
+    /* Bỏ opacity: dùng token màu phụ để tương phản còn kiểm soát được */
+    color: var(--text-secondary);
 }
 
 .workspace {
@@ -293,17 +339,13 @@ html[data-theme="evening"] .menu-item.active {
     margin-top: 16px;
     padding: 16px;
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.18);
+    background: var(--fill-4);
     border: 1px solid var(--glass-border);
-}
-
-html[data-theme="evening"] .idea-box {
-    background: rgba(255, 255, 255, 0.06);
 }
 
 .idea-box label {
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: var(--text-body);
 }
 
 .idea-input-row {
@@ -347,7 +389,7 @@ html[data-theme="evening"] .idea-box {
 /* Nhấp nháy nhẹ khi trường được AI điền gợi ý */
 textarea.ai-suggested {
     border-color: var(--accent-color);
-    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.18);
+    box-shadow: 0 0 0 4px var(--focus-glow);
     transition: all 0.4s ease;
 }
 
@@ -360,16 +402,16 @@ textarea.ai-suggested {
 
 .form-field label {
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: var(--text-body);
 }
 
 .field-desc {
-    font-size: 0.8rem;
+    font-size: var(--text-footnote);
     color: var(--text-secondary);
 }
 
 .field-example {
-    font-size: 0.8rem;
+    font-size: var(--text-footnote);
     color: var(--accent-color);
     font-style: italic;
     margin-bottom: 4px;
@@ -391,14 +433,10 @@ textarea {
 
 .output-container {
     flex: 1;
-    background: rgba(0, 0, 0, 0.05);
+    background: var(--fill-4);
     border-radius: 12px;
     padding: 16px;
     overflow-y: auto;
-}
-
-html[data-theme="evening"] .output-container {
-    background: rgba(0, 0, 0, 0.3);
 }
 
 pre {
@@ -408,7 +446,7 @@ pre {
 
 code {
     font-family: "SF Mono", Menlo, Consolas, monospace;
-    font-size: 0.9rem;
+    font-size: var(--text-subhead);
     line-height: 1.5;
 }
 
@@ -420,22 +458,37 @@ code {
 }
 
 .btn-icon {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--fill-2);
     border: 1px solid var(--glass-border);
     color: var(--text-primary);
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    font-size: 1rem;
+    font-size: var(--text-body);
     cursor: pointer;
+    /* Cần cho ::before mở rộng vùng bấm bên dưới */
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
 }
 
+/* Giữ vòng tròn 34px cho header gọn, nhưng mở vùng bấm ra 44×44px —
+   đúng khuyến nghị của Apple HIG: "extend hit area beyond visual bounds".
+   34px vẫn vượt ngưỡng WCAG web (24px), 44pt là mức của Apple. */
+.btn-icon::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+}
+
 .btn-icon:hover {
-    background: rgba(255, 255, 255, 0.35);
+    background: var(--fill-1);
 }
 
 .btn-icon:active {
@@ -445,7 +498,7 @@ code {
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.35);
+    background: var(--scrim);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     display: flex;
@@ -480,7 +533,7 @@ code {
 
 .settings-label {
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: var(--text-body);
 }
 
 .provider-options {
@@ -495,14 +548,14 @@ code {
     gap: 12px;
     padding: 12px 14px;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.18);
+    background: var(--fill-4);
     border: 1px solid var(--glass-border);
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .provider-option:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--fill-3);
 }
 
 .provider-option input[type="radio"] {
@@ -519,7 +572,7 @@ code {
 }
 
 .provider-info span {
-    font-size: 0.8rem;
+    font-size: var(--text-footnote);
     color: var(--text-secondary);
 }
 
@@ -551,16 +604,18 @@ code {
     align-items: center;
     padding: 10px 14px;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.18);
+    background: var(--fill-4);
     border: 1px solid var(--glass-border);
-    font-size: 0.9rem;
+    font-size: var(--text-subhead);
     font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
 }
 
 .key-badge {
     background: var(--accent-color);
     color: white;
-    font-size: 0.7rem;
+    font-size: var(--text-caption);
+    font-variant-numeric: tabular-nums;
     font-weight: 600;
     font-family: var(--font-stack);
     padding: 2px 8px;
@@ -572,7 +627,7 @@ code {
     background: transparent;
     border: none;
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-size: var(--text-subhead);
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 6px;
@@ -582,15 +637,6 @@ code {
 .btn-delete-key:hover {
     color: #ff3b30;
     background: rgba(255, 59, 48, 0.1);
-}
-
-html[data-theme="evening"] .provider-option,
-html[data-theme="evening"] .key-item {
-    background: rgba(255, 255, 255, 0.06);
-}
-
-html[data-theme="evening"] .provider-option:hover {
-    background: rgba(255, 255, 255, 0.12);
 }
 
 /* --- NÚT HÀNH ĐỘNG Ở KHUNG KẾT QUẢ (Lưu / Sao chép) --- */
@@ -613,7 +659,7 @@ html[data-theme="evening"] .provider-option:hover {
 .entry-empty {
     text-align: center;
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-size: var(--text-subhead);
     padding: 28px 12px;
 }
 
@@ -623,12 +669,8 @@ html[data-theme="evening"] .provider-option:hover {
     gap: 8px;
     padding: 14px 16px;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.18);
+    background: var(--fill-4);
     border: 1px solid var(--glass-border);
-}
-
-html[data-theme="evening"] .entry-card {
-    background: rgba(255, 255, 255, 0.06);
 }
 
 .entry-meta {
@@ -636,10 +678,13 @@ html[data-theme="evening"] .entry-card {
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+    /* Chữ số đơn cách: ngày tạo và số ngày còn lại xếp theo cột nên bề rộng
+       từng chữ số phải bằng nhau, tránh cột số nhảy khi nội dung đổi */
+    font-variant-numeric: tabular-nums;
 }
 
 .entry-excerpt {
-    font-size: 0.9rem;
+    font-size: var(--text-subhead);
     line-height: 1.45;
     color: var(--text-primary);
     word-break: break-word;
@@ -656,7 +701,7 @@ html[data-theme="evening"] .entry-card {
     display: flex;
     gap: 2px;
     align-self: flex-start;
-    background: rgba(120, 120, 128, 0.16);
+    background: var(--fill-2);
     border-radius: 999px;
     padding: 3px;
 }
@@ -666,7 +711,7 @@ html[data-theme="evening"] .entry-card {
     border: none;
     color: var(--text-secondary);
     padding: 7px 15px;
-    font-size: 0.85rem;
+    font-size: var(--text-subhead);
     font-weight: 500;
     border-radius: 999px;
     cursor: pointer;
@@ -680,13 +725,9 @@ html[data-theme="evening"] .entry-card {
 
 .saved-tab-btn.active {
     color: var(--text-primary);
-    background: rgba(255, 255, 255, 0.85);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    background: var(--knob-bg);
+    box-shadow: var(--knob-shadow);
     font-weight: 600;
-}
-
-html[data-theme="evening"] .saved-tab-btn.active {
-    background: rgba(255, 255, 255, 0.18);
 }
 
 /* --- CARD PROMPT ĐÃ LƯU / TRONG THÙNG RÁC (ẢNH VUÔNG + NỘI DUNG) --- */
@@ -695,12 +736,8 @@ html[data-theme="evening"] .saved-tab-btn.active {
     gap: 14px;
     padding: 14px;
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.18);
+    background: var(--fill-4);
     border: 1px solid var(--glass-border);
-}
-
-html[data-theme="evening"] .saved-card {
-    background: rgba(255, 255, 255, 0.06);
 }
 
 /* Vùng hiển thị ảnh luôn là hình vuông cố định; ảnh bên trong chỉ scale-down theo
@@ -714,12 +751,8 @@ html[data-theme="evening"] .saved-card {
     justify-content: center;
     overflow: hidden;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.25);
+    background: var(--fill-3);
     border: 1px solid var(--glass-border);
-}
-
-html[data-theme="evening"] .saved-thumb {
-    background: rgba(0, 0, 0, 0.25);
 }
 
 .saved-thumb img {
@@ -731,7 +764,7 @@ html[data-theme="evening"] .saved-thumb {
 }
 
 .thumb-placeholder {
-    font-size: 0.75rem;
+    font-size: var(--text-footnote);
     text-align: center;
     color: var(--text-secondary);
     line-height: 1.3;
@@ -767,13 +800,14 @@ html[data-theme="evening"] .saved-thumb {
 }
 
 .toast {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
+    background: var(--glass-bg);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
     border: 1px solid var(--glass-border);
-    color: #1d1d1f;
+    color: var(--text-primary);
     padding: 12px 24px;
     border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px var(--shadow-color);
     font-weight: 500;
     animation: slideIn 0.3s ease-out forwards;
 }
@@ -794,27 +828,22 @@ html[data-theme="evening"] .saved-thumb {
 /* Tối ưu thanh cuộn chuẩn Apple */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 10px; }
-html[data-theme="evening"] ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); }
+::-webkit-scrollbar-thumb { background: var(--fill-1); border-radius: 10px; }
 
 /* --- NGỮ CẢNH NÂNG CAO (KIẾN TRÚC + TECH STACK) --- */
 .advanced-context {
     margin-top: 12px;
     padding: 4px 16px;
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--fill-4);
     border: 1px solid var(--glass-border);
-}
-
-html[data-theme="evening"] .advanced-context {
-    background: rgba(255, 255, 255, 0.04);
 }
 
 .advanced-context > summary {
     cursor: pointer;
     padding: 12px 0;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: var(--text-subhead);
     list-style: none;
     user-select: none;
 }
@@ -823,8 +852,7 @@ html[data-theme="evening"] .advanced-context {
 
 .advanced-context > summary::before {
     content: "▸";
-    display: inline-block;
-    margin-right: 8px;
+    /* summary đã là flex container nên khoảng cách do gap lo, không cần margin */
     color: var(--text-secondary);
     transition: transform 0.2s ease;
 }
@@ -854,17 +882,13 @@ html[data-theme="evening"] .advanced-context {
     margin-top: 12px;
     padding: 16px;
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.18);
+    background: var(--fill-4);
     border: 1px solid var(--glass-border);
-}
-
-html[data-theme="evening"] .reference-panel {
-    background: rgba(255, 255, 255, 0.06);
 }
 
 .reference-panel > label {
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: var(--text-body);
 }
 
 .reference-dropzone {
@@ -876,7 +900,7 @@ html[data-theme="evening"] .reference-panel {
     padding: 14px;
     border-radius: 12px;
     border: 1.5px dashed var(--glass-border);
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--fill-4);
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -884,11 +908,11 @@ html[data-theme="evening"] .reference-panel {
 .reference-dropzone:hover,
 .reference-dropzone.dragover {
     border-color: var(--accent-color);
-    background: rgba(0, 113, 227, 0.08);
+    background: var(--accent-tint);
 }
 
 .reference-hint {
-    font-size: 0.85rem;
+    font-size: var(--text-subhead);
     font-weight: 500;
     color: var(--text-secondary);
 }
@@ -906,7 +930,7 @@ html[data-theme="evening"] .reference-panel {
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid var(--glass-border);
-    background: rgba(0, 0, 0, 0.1);
+    background: var(--fill-3);
 }
 
 .reference-thumb img {
@@ -920,13 +944,14 @@ html[data-theme="evening"] .reference-panel {
     position: absolute;
     top: 4px;
     right: 4px;
-    width: 22px;
-    height: 22px;
+    /* 28px: WCAG 2.2 AA yêu cầu vùng bấm tối thiểu 24×24 CSS px — 22px cũ không đạt */
+    width: 28px;
+    height: 28px;
     border: none;
     border-radius: 50%;
     background: rgba(0, 0, 0, 0.6);
     color: #fff;
-    font-size: 0.75rem;
+    font-size: var(--text-footnote);
     line-height: 1;
     cursor: pointer;
     display: flex;
@@ -953,5 +978,99 @@ html[data-theme="evening"] .reference-panel {
     }
     .screen {
         overflow-y: auto;
+    }
+}
+
+/* --- ICON SVG DÙNG CHUNG ---
+   Thay cho emoji: nhận currentColor nên tự đổi theo theme, độ dày nét cố định
+   1.5px trên toàn bộ giao diện, và vẽ giống nhau trên mọi hệ điều hành. */
+.ico {
+    width: 1.05em;
+    height: 1.05em;
+    flex-shrink: 0;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    /* Căn theo đường cơ sở của chữ bên cạnh, không để icon trôi lên */
+    vertical-align: -0.14em;
+}
+
+/* Icon trong tiêu đề modal: to hơn một chút và dùng màu accent để phân cấp */
+.ico-title {
+    width: 1.15em;
+    height: 1.15em;
+    color: var(--accent-color);
+}
+
+/* Nút chỉ có icon (3 nút trên header): icon lớn hơn vì không có chữ kèm */
+.btn-icon .ico {
+    width: 18px;
+    height: 18px;
+    vertical-align: 0;
+}
+
+/* Nhãn và nút có icon + chữ: dùng flex để khoảng cách đều nhau */
+.idea-box label,
+.reference-panel > label,
+.advanced-context > summary,
+.user-tag {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.settings-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+/* --- FOCUS RING DÙNG CHUNG (ĐIỀU HƯỚNG BÀN PHÍM) ---
+   :focus-visible chỉ hiện khi người dùng đi bằng bàn phím, không hiện khi bấm chuột
+   — đúng hành vi của macOS. Trước đây các nút không có bất kỳ style focus nào nên
+   nhấn Tab qua app thì con trỏ tàng hình. */
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-icon:focus-visible,
+.menu-item:focus-visible,
+.saved-tab-btn:focus-visible,
+.btn-delete-key:focus-visible,
+.reference-remove:focus-visible,
+.saved-thumb-clickable:focus-visible,
+.advanced-context > summary:focus-visible,
+.reference-dropzone:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 5px var(--focus-glow);
+}
+
+/* Cả khối provider-option là nhãn bọc radio: làm nổi khi radio bên trong nhận focus */
+.provider-option:focus-within {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 4px var(--focus-glow);
+}
+
+/* --- TÔN TRỌNG "REDUCE MOTION" CỦA HỆ ĐIỀU HÀNH ---
+   macOS/iOS có công tắc Reduce Motion; animation trôi vô hạn là tác nhân gây chóng
+   mặt với người bị rối loạn tiền đình. Khối này phải nằm CUỐI FILE để thắng cascade. */
+@media (prefers-reduced-motion: reduce) {
+    /* Card chào mừng đang trôi lên xuống vô hạn -> dừng hẳn */
+    .welcome-card {
+        animation: none;
+    }
+
+    /* Giữ spinner vì nó truyền tải trạng thái "đang chờ AI", nhưng làm chậm lại */
+    .spinner {
+        animation-duration: 1.6s;
+    }
+
+    *,
+    *::before,
+    *::after {
+        transition-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
     }
 }

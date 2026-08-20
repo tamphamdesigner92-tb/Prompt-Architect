@@ -96,6 +96,7 @@ const AppState = {
         this.updateThemeByTime();
         this.handleScreens();
         this.setupEventListeners();
+        this.setupModalKeyboard();
         this.renderFormFields();
     },
 
@@ -156,7 +157,11 @@ const AppState = {
             setTimeout(() => {
                 welcomeScreen.classList.remove("active");
                 mainScreen.classList.add("active");
-                document.getElementById("user-profile-tag").innerText = `👤 ${this.userName}`;
+                // Icon là markup tĩnh, còn tên người dùng giữ nguyên dạng text node
+        // (không nhét vào innerHTML) để tên có ký tự như < > không phá vỡ DOM
+        const profileTag = document.getElementById("user-profile-tag");
+        profileTag.innerHTML = `<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-user"></use></svg><span></span>`;
+        profileTag.querySelector("span").textContent = this.userName;
             }, 2200); // Animation In/Out diễn ra trong 2.2 giây
         }
     },
@@ -289,6 +294,75 @@ const AppState = {
         });
     },
 
+
+    // --- QUẢN LÝ MODAL DÙNG CHUNG CHO CẢ 3 HỘP THOẠI ---
+    // Trước đây modal chỉ toggle class "hidden": không đóng được bằng Esc, tiêu điểm
+    // bàn phím vẫn chạy ra ngoài phía sau lớp phủ, và sau khi đóng thì tiêu điểm mất
+    // hẳn. Ba hàm dưới xử lý chung để không phải lặp lại ở từng modal.
+    lastFocusedElement: null,
+
+    // Danh sách phần tử có thể nhận tiêu điểm bên trong một modal
+    getFocusable(modal) {
+        const selector = 'button, [href], input:not([type="hidden"]), select, textarea, [tabindex]:not([tabindex="-1"])';
+        return Array.from(modal.querySelectorAll(selector))
+            .filter(el => !el.disabled && el.offsetParent !== null);
+    },
+
+    openModal(modalId) {
+        // Ghi nhớ nút đã mở modal để trả tiêu điểm về đúng chỗ khi đóng
+        this.lastFocusedElement = document.activeElement;
+        const modal = document.getElementById(modalId);
+        modal.classList.remove("hidden");
+
+        // Đưa tiêu điểm vào trong modal để người dùng bàn phím không bị mắc ngoài
+        const focusable = this.getFocusable(modal);
+        if (focusable.length) focusable[0].focus();
+    },
+
+    closeModal(modalId) {
+        document.getElementById(modalId).classList.add("hidden");
+        // Trả tiêu điểm về nút đã mở modal (hành vi chuẩn của hộp thoại)
+        if (this.lastFocusedElement && document.body.contains(this.lastFocusedElement)) {
+            this.lastFocusedElement.focus();
+        }
+        this.lastFocusedElement = null;
+    },
+
+    // Modal đang mở (nếu có). Dùng cho phím Esc và bẫy Tab.
+    getOpenModal() {
+        return document.querySelector(".modal-overlay:not(.hidden)");
+    },
+
+    // Esc để đóng + Tab/Shift+Tab quay vòng bên trong modal (focus trap)
+    setupModalKeyboard() {
+        document.addEventListener("keydown", (e) => {
+            const modal = this.getOpenModal();
+            if (!modal) return;
+
+            if (e.key === "Escape") {
+                e.preventDefault();
+                this.closeModal(modal.id);
+                return;
+            }
+
+            if (e.key !== "Tab") return;
+
+            const focusable = this.getFocusable(modal);
+            if (!focusable.length) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+
+            // Đến phần tử cuối rồi nhấn Tab thì quay về đầu, và ngược lại
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        });
+    },
+
     // --- MÀN HÌNH CÀI ĐẶT AI ---
     openSettings() {
         // Đồng bộ trạng thái hiện tại lên giao diện trước khi hiện
@@ -296,11 +370,11 @@ const AppState = {
             radio.checked = radio.value === this.settings.provider;
         });
         this.renderKeyList();
-        document.getElementById("settings-modal").classList.remove("hidden");
+        this.openModal("settings-modal");
     },
 
     closeSettings() {
-        document.getElementById("settings-modal").classList.add("hidden");
+        this.closeModal("settings-modal");
     },
 
     // Vẽ danh sách API key (che bớt ký tự để bảo mật) + trạng thái luân phiên
@@ -695,12 +769,12 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
     lastHistoryPrompt: "",
 
     async openHistory() {
-        document.getElementById("history-modal").classList.remove("hidden");
+        this.openModal("history-modal");
         await this.loadHistoryList();
     },
 
     closeHistory() {
-        document.getElementById("history-modal").classList.add("hidden");
+        this.closeModal("history-modal");
     },
 
     async loadHistoryList() {
@@ -798,12 +872,12 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
     pendingImageEntryId: null,
 
     async openSaved(tab = "saved") {
-        document.getElementById("saved-modal").classList.remove("hidden");
+        this.openModal("saved-modal");
         this.switchSavedTab(tab);
     },
 
     closeSaved() {
-        document.getElementById("saved-modal").classList.add("hidden");
+        this.closeModal("saved-modal");
     },
 
     switchSavedTab(tab) {
@@ -935,7 +1009,7 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
         list.innerHTML = "";
 
         if (!items.length) {
-            list.innerHTML = `<li class="entry-empty">Chưa lưu prompt nào. Bấm nút "💾 Lưu" ở khung kết quả để thêm.</li>`;
+            list.innerHTML = `<li class="entry-empty">Chưa lưu prompt nào. Bấm nút "Lưu" ở khung kết quả để thêm.</li>`;
             return;
         }
 
@@ -945,7 +1019,8 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
                 buildActions: (actions, e) => {
                     const deleteBtn = document.createElement("button");
                     deleteBtn.className = "btn-delete-key";
-                    deleteBtn.textContent = "🗑️ Xoá";
+                    deleteBtn.innerHTML =
+                `<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-trash"></use></svg> Xoá`;
                     deleteBtn.title = "Chuyển vào thùng rác";
                     deleteBtn.addEventListener("click", () => this.deleteSavedEntry(e.id));
                     actions.appendChild(deleteBtn);

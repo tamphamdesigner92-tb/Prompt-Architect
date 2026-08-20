@@ -110,20 +110,46 @@ Server Express tối giản, không có view engine/framework nào khác:
 
 ## Kiến trúc style.css
 
-- **CSS variables trong `:root`** + 3 theme override theo `html[data-theme="..."]` (morning/afternoon/evening). Theme evening là dark mode — khi thêm component mới cần kiểm tra cả evening.
-- **Ngôn ngữ thiết kế Apple:**
-  - Glassmorphism: `backdrop-filter: saturate(180%) blur(20px)` trên `.glass-card` / `.glass-header`
-  - Menu nhóm công việc: segmented control kiểu iOS (nền `rgba(120,120,128,0.16)`, item active nền trắng nổi)
-  - Nút: active `scale(0.97)`, hover `brightness(1.08)`
-  - Typography: font stack `-apple-system`, letter-spacing âm cho tiêu đề (`-0.022em`)
-  - Border-radius lớn (12-20px), bóng đổ mềm
-- **Responsive:** dưới 1100px chuyển workspace 2 cột → 1 cột, menu cuộn ngang (media query ở cuối file — phải giữ ở cuối để không bị cascade ghi đè).
+### Hệ token (quan trọng nhất — đọc trước khi thêm component)
+
+Toàn bộ màu và cỡ chữ đi qua token trong `:root`; theme `evening` chỉ khai báo lại **cùng bộ token đó**, **không** override từng component. Số lượng selector `html[data-theme="evening"] .xxx` hiện là **0** — nếu bạn phải thêm một cái, gần như chắc chắn là đang hardcode sai chỗ.
+
+| Nhóm token | Giá trị | Dùng cho |
+|---|---|---|
+| `--fill-1` … `--fill-4` | `rgba(120,120,128, .20/.16/.12/.08)` — evening dùng `.36/.32/.24/.18` | Nền của mọi bề mặt phụ: card, input, panel, nút phụ. Màu xám trung tính nên **hoạt động trên cả nền sáng và tối** — đây là lý do không cần override evening |
+| `--text-primary` / `--text-secondary` | `#1d1d1f` / `rgba(60,60,67,0.72)` | Thang label kiểu Apple. **Lưu ý:** alpha là 0.72 chứ không phải 0.60 của Apple — con số 0.60 chỉ đạt 3.3:1, dưới ngưỡng WCAG |
+| `--glass-bg` / `--glass-border` | `rgba(255,255,255,0.72)` / `rgba(60,60,67,0.14)` | Material kiểu Apple. Đục hơn glassmorphism thường vì mục đích là **tách** nội dung |
+| `--knob-bg` / `--knob-shadow` | `#ffffff` / bóng mềm | Núm trắng nổi của segmented control |
+| `--focus-glow` / `--accent-tint` / `--scrim` | dẫn xuất từ accent | Vầng focus, nền hover accent, lớp phủ modal |
+| `--text-title-1/2/3`, `--text-body`, `--text-subhead`, `--text-footnote`, `--text-caption` | 7 bậc | Thang chữ. **Không viết `font-size` bằng số tho** — file hiện không còn giá trị rem nào rời rạc |
+
+Nền 3 theme cố tình **bão hoà thấp**: nguyên tắc Apple là nền gần trung tính, dồn toàn bộ sức màu vào một accent. Đừng nâng saturation lên — nó sẽ kéo tương phản chữ xuống dưới ngưỡng đọc được.
+
+### Khả năng truy cập (đã đạt, đừng làm hỏng)
+
+- **Tương phản:** 12/12 cặp màu trên cả 4 theme đạt WCAG AA (4.5:1). Đổi màu thì phải tính lại.
+- **Focus ring:** một khối `:focus-visible` dùng chung cuối file phủ mọi control. Thêm control mới thì thêm selector vào khối đó, **không** đặt `outline: none` rời rạc.
+- **`prefers-reduced-motion`:** khối cuối file, phải **giữ ở cuối** để thắng cascade.
+- **Icon:** SVG sprite `<symbol id="i-*">` đầu `<body>`, gọi bằng `<use href="#i-tên">` với class `.ico`. **Không dùng emoji làm icon** — emoji không nhận `currentColor` nên không đổi theo theme, và mỗi hệ điều hành vẽ một kiểu. Ngoại lệ có chủ ý: `✨` và `🪄` trên 2 nút AI, giữ vì mang sắc thái cảm xúc chứ không phải icon điều hướng.
+- **Modal:** cả 3 modal có `role="dialog"` + `aria-modal` + `aria-labelledby`. Hành vi bàn phím dùng chung qua `AppState.openModal()` / `closeModal()` / `setupModalKeyboard()` — Esc để đóng, Tab quay vòng bên trong (focus trap), trả tiêu điểm về nút đã mở. Modal mới phải đi qua 2 hàm này.
+- **Vùng bấm:** `.btn-icon` giữ vòng tròn 34px nhưng mở vùng bấm ra 44×44px bằng `::before` (kỹ thuật Apple HIG khuyến nghị). Ngưỡng tối thiểu của web là 24×24 CSS px (WCAG 2.2 AA).
+
+### Ngôn ngữ thiết kế Apple
+
+- Glassmorphism: `backdrop-filter: saturate(180%) blur(20px)` trên `.glass-card` / `.glass-header`
+- Menu nhóm công việc: segmented control kiểu iOS (nền `var(--fill-2)`, núm active `var(--knob-bg)`)
+- Nút: active `scale(0.97)`, nút icon `scale(0.92)` — nút nhỏ hơn thì lún sâu hơn
+- Typography: font stack `-apple-system`, letter-spacing âm theo cấp tiêu đề, luôn dùng đơn vị `em` (không dùng `px`)
+- Border-radius lớn (12-20px), bóng đổ mềm
+- **Responsive:** dưới 1280px chuyển workspace 2 cột → 1 cột, menu cuộn ngang (media query gần cuối file — giữ nguyên vị trí để không bị cascade ghi đè).
 
 ## Quy ước khi sửa code
 
 - Giữ nguyên stack Vanilla JS ở **frontend** — không thêm framework/thư viện ngoài. Backend chỉ có Express, tránh thêm dependency mới nếu không thật cần thiết (không cần lib xử lý ảnh phía server — nén ảnh đã xử lý xong ở client bằng Canvas API).
 - Comment và text giao diện viết bằng **tiếng Việt**.
 - Mọi tính năng mới nên đọc động từ `PROMPT_STRUCTURES` thay vì hardcode theo nhóm.
-- Khi thêm UI mới: dùng CSS variables sẵn có, kiểm tra trên cả theme sáng và theme evening (dark).
+- Khi thêm UI mới: dùng token sẵn có (`--fill-*`, `--text-*`), **không hardcode `rgba()` hay `font-size` bằng số tho**. Nếu thấy mình cần viết `html[data-theme="evening"] .xxx` thì hãy dừng lại — token đã xử lý cả 2 theme.
+- Control mới phải thêm vào khối `:focus-visible` dùng chung; icon mới thêm `<symbol>` vào sprite thay vì dùng emoji.
+- Đổi màu thì tính lại tương phản WCAG (ngưỡng 4.5:1 cho text thường) trước khi commit — hiện cả 4 theme đều đạt.
 - Khi sửa route trong `server.js`: luôn ghi file qua `writeJSONAtomic()` (không gọi `fs.writeFileSync` trực tiếp lên `history.json`/`library.json`) để giữ tính atomic.
 - Test nhanh: `preview_start` với config `prompt-architect` (cổng 8931, chạy `npm start`). Nếu chưa có `node_modules`, chạy `npm install` trước.

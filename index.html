@@ -7,7 +7,47 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="toast-container"></div>
+    <!-- Bộ icon SVG dùng chung (stroke 1.5px, cùng một ngôn ngữ hình học).
+         Thay cho emoji: emoji mỗi hệ điều hành vẽ một kiểu, không nhận currentColor
+         nên không đổi theo theme, và không kiểm soát được độ dày nét. -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+        <defs>
+            <symbol id="i-history" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="9"/><path d="M12 7.5v5l3.5 2"/>
+            </symbol>
+            <symbol id="i-library" viewBox="0 0 24 24">
+                <path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8z"/>
+            </symbol>
+            <symbol id="i-settings" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3.2"/>
+                <path d="M12 2.8v2.4M12 18.8v2.4M4.5 7.5l2 1.2M17.5 15.3l2 1.2M4.5 16.5l2-1.2M17.5 8.7l2-1.2"/>
+            </symbol>
+            <symbol id="i-idea" viewBox="0 0 24 24">
+                <path d="M9.5 17.5h5M10 21h4M12 3a6 6 0 0 0-3.5 10.9V17.5h7v-3.6A6 6 0 0 0 12 3z"/>
+            </symbol>
+            <symbol id="i-context" viewBox="0 0 24 24">
+                <path d="M14.7 6.3a3.7 3.7 0 0 0 4.9 4.9l-8.4 8.4a2.4 2.4 0 0 1-3.4-3.4z"/>
+                <path d="M16.5 3.5l4 4"/>
+            </symbol>
+            <symbol id="i-image" viewBox="0 0 24 24">
+                <rect x="3.5" y="5" width="17" height="14" rx="2.5"/>
+                <circle cx="9" cy="10" r="1.6"/><path d="M4.5 17l4.5-4 4 3.5 3-2.5 3.5 3"/>
+            </symbol>
+            <symbol id="i-save" viewBox="0 0 24 24">
+                <path d="M5.5 3.5h9.5l4 4v13a1 1 0 0 1-1 1H5.5a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1z"/>
+                <path d="M8 3.5v5.5h7V3.5M8 15.5h8"/>
+            </symbol>
+            <symbol id="i-trash" viewBox="0 0 24 24">
+                <path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l.8 12.5a1 1 0 0 0 1 .9h7.4a1 1 0 0 0 1-.9L17.5 7"/>
+                <path d="M10.5 11v6M13.5 11v6"/>
+            </symbol>
+            <symbol id="i-user" viewBox="0 0 24 24">
+                <circle cx="12" cy="8.5" r="3.7"/><path d="M4.8 20.5a7.2 7.2 0 0 1 14.4 0"/>
+            </symbol>
+        </defs>
+    </svg>
+
+    <div id="toast-container" role="status" aria-live="polite"></div>
 
     <div id="welcome-screen" class="screen active">
         <div class="glass-card welcome-card">
@@ -35,9 +75,9 @@
             </nav>
             <div class="header-actions">
                 <div id="user-profile-tag" class="user-tag"></div>
-                <button id="btn-open-history" class="btn-icon" title="Lịch sử prompt">🕘</button>
-                <button id="btn-open-saved" class="btn-icon" title="Thư viện lưu trữ">⭐</button>
-                <button id="btn-open-settings" class="btn-icon" title="Cài đặt AI">⚙️</button>
+                <button id="btn-open-history" class="btn-icon" title="Lịch sử prompt" aria-label="Lịch sử prompt"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-history"></use></svg></button>
+                <button id="btn-open-saved" class="btn-icon" title="Thư viện lưu trữ" aria-label="Thư viện lưu trữ"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-library"></use></svg></button>
+                <button id="btn-open-settings" class="btn-icon" title="Cài đặt AI" aria-label="Cài đặt AI"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-settings"></use></svg></button>
             </div>
         </header>
 
@@ -46,7 +86,7 @@
                 <h2 id="current-category-title">Cấu trúc Prompt</h2>
 
                 <div class="idea-box">
-                    <label for="idea-input">💡 Ý tưởng ban đầu của bạn</label>
+                    <label for="idea-input"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-idea"></use></svg> Ý tưởng ban đầu của bạn</label>
                     <span class="field-desc">Mô tả ngắn gọn ý tưởng, AI sẽ tự động gợi ý nội dung cho các trường bên dưới. Bạn có thể chỉnh sửa lại sau.</span>
                     <div class="idea-input-row">
                         <textarea id="idea-input" rows="2" placeholder="Ví dụ: Tôi muốn phân tích dữ liệu bán hàng để tìm sản phẩm chủ lực..."></textarea>
@@ -56,7 +96,7 @@
 
                 <!-- Ngữ cảnh kỹ thuật bổ sung: chỉ hiện ở nhóm vibe & problem, chỉ dùng làm ngữ cảnh cho AI -->
                 <details id="advanced-context" class="advanced-context hidden">
-                    <summary>🔧 Ngữ cảnh nâng cao (tùy chọn)</summary>
+                    <summary><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-context"></use></svg> Ngữ cảnh nâng cao (tùy chọn)</summary>
                     <div class="advanced-context-body">
                         <div class="form-field">
                             <label for="context-architecture">Mô tả Kiến trúc Ứng dụng</label>
@@ -73,7 +113,7 @@
 
                 <!-- Ảnh tham chiếu (đầu vào tạm thời gửi cho AI phân tích): chỉ hiện ở nhóm media, tối đa 3 ảnh -->
                 <div id="reference-panel" class="reference-panel hidden">
-                    <label>🖼️ Ảnh tham chiếu (tối đa 3)</label>
+                    <label><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-image"></use></svg> Ảnh tham chiếu (tối đa 3)</label>
                     <span class="field-desc">Kéo-thả hoặc bấm để tải ảnh. AI sẽ phân tích phong cách, bố cục, màu sắc và ánh sáng để gợi ý prompt sát hơn. Ảnh chỉ dùng cho lần gợi ý này, không lưu lại.</span>
                     <div id="reference-dropzone" class="reference-dropzone">
                         <div id="reference-thumbs" class="reference-thumbs"></div>
@@ -91,7 +131,7 @@
                     <h2>Kết Quả Prompt (Markdown)</h2>
                     <div class="output-actions">
                         <button id="btn-optimize" class="btn-secondary">🪄 Tối ưu / Sửa lỗi</button>
-                        <button id="btn-save-prompt" class="btn-secondary">💾 Lưu</button>
+                        <button id="btn-save-prompt" class="btn-secondary"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-save"></use></svg> Lưu</button>
                         <button id="btn-copy-prompt" class="btn-secondary">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                             Sao chép
@@ -105,11 +145,12 @@
         </main>
     </div>
 
-    <div id="settings-modal" class="modal-overlay hidden">
+    <div id="settings-modal" class="modal-overlay hidden" role="dialog" aria-modal="true"
+         aria-labelledby="settings-modal-title">
         <div class="glass-card settings-card">
             <div class="settings-header">
-                <h2>⚙️ Cài đặt AI</h2>
-                <button id="btn-close-settings" class="btn-icon" title="Đóng">✕</button>
+                <h2 id="settings-modal-title"><svg class="ico ico-title" aria-hidden="true" focusable="false"><use href="#i-settings"></use></svg> Cài đặt AI</h2>
+                <button id="btn-close-settings" class="btn-icon" title="Đóng" aria-label="Đóng cài đặt">✕</button>
             </div>
 
             <div class="settings-section">
@@ -145,26 +186,28 @@
         </div>
     </div>
 
-    <div id="history-modal" class="modal-overlay hidden">
+    <div id="history-modal" class="modal-overlay hidden" role="dialog" aria-modal="true"
+         aria-labelledby="history-modal-title">
         <div class="glass-card settings-card">
             <div class="settings-header">
-                <h2>🕘 Lịch sử prompt</h2>
-                <button id="btn-close-history" class="btn-icon" title="Đóng">✕</button>
+                <h2 id="history-modal-title"><svg class="ico ico-title" aria-hidden="true" focusable="false"><use href="#i-history"></use></svg> Lịch sử prompt</h2>
+                <button id="btn-close-history" class="btn-icon" title="Đóng" aria-label="Đóng lịch sử">✕</button>
             </div>
             <span class="field-desc">Tự động lưu lại ý tưởng và prompt đã tạo, giữ tối đa 50 mục gần nhất.</span>
             <ul id="history-list" class="entry-list"></ul>
         </div>
     </div>
 
-    <div id="saved-modal" class="modal-overlay hidden">
+    <div id="saved-modal" class="modal-overlay hidden" role="dialog" aria-modal="true"
+         aria-labelledby="saved-modal-title">
         <div class="glass-card settings-card">
             <div class="settings-header">
-                <h2>⭐ Thư viện lưu trữ</h2>
-                <button id="btn-close-saved" class="btn-icon" title="Đóng">✕</button>
+                <h2 id="saved-modal-title"><svg class="ico ico-title" aria-hidden="true" focusable="false"><use href="#i-library"></use></svg> Thư viện lưu trữ</h2>
+                <button id="btn-close-saved" class="btn-icon" title="Đóng" aria-label="Đóng thư viện">✕</button>
             </div>
             <div class="saved-tabs">
                 <button class="saved-tab-btn active" data-tab="saved">Đã lưu</button>
-                <button class="saved-tab-btn" data-tab="trash">🗑️ Thùng rác</button>
+                <button class="saved-tab-btn" data-tab="trash"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-trash"></use></svg> Thùng rác</button>
             </div>
             <ul id="saved-list" class="entry-list"></ul>
             <ul id="trash-list" class="entry-list hidden"></ul>
