@@ -195,8 +195,8 @@ const AppState = {
 
         // Sự kiện click nút Copy prompt kết quả
         document.getElementById("btn-copy-prompt").addEventListener("click", () => {
-            const markdownText = document.getElementById("markdown-output").innerText;
-            if (markdownText && !markdownText.startsWith("Vui lòng")) {
+            const markdownText = this.getMarkdownOutput();
+            if (markdownText) {
                 navigator.clipboard.writeText(markdownText)
                     .then(() => {
                         this.showToast("Đã sao chép Prompt vào khay nhớ tạm!");
@@ -457,9 +457,15 @@ const AppState = {
             formContainer.appendChild(fieldWrapper);
         });
 
-        // Làm mới ô ý tưởng và khung kết quả bên phải
-        document.getElementById("idea-input").value = "";
-        document.getElementById("markdown-output").innerText = "Vui lòng nhập liệu ở các ô bên trái để tạo cấu trúc prompt...";
+        // Làm mới ô ý tưởng và khung kết quả bên phải.
+        // Dùng lại generateMarkdownPrompt() thay vì tự gán chuỗi: nó lo cả nội dung
+        // rỗng lẫn class .is-empty, nên không còn hai chỗ phải sửa song song.
+        const ideaInput = document.getElementById("idea-input");
+        ideaInput.value = "";
+        // autoResize đặt height dạng inline style, nên xoá nội dung mà không gọi lại
+        // thì ô vẫn giữ chiều cao cũ và để lại một khoảng trống rỗng
+        this.autoResize(ideaInput);
+        this.generateMarkdownPrompt();
 
         // Bật/tắt các panel phụ theo nhóm công việc hiện tại (kèm reset dữ liệu tạm)
         this.updateContextPanels();
@@ -736,12 +742,15 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
         suggestBtn.disabled = loading;
         optimizeBtn.disabled = loading;
 
+        const ico = name =>
+            `<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-${name}"></use></svg>`;
+
         suggestBtn.innerHTML = (loading && mode === "suggest")
             ? `<span class="spinner"></span> Đang gợi ý...`
-            : `✨ Gợi ý bằng AI`;
+            : `${ico("sparkle")} Gợi ý bằng AI`;
         optimizeBtn.innerHTML = (loading && mode === "optimize")
             ? `<span class="spinner"></span> Đang tối ưu...`
-            : `🪄 Tối ưu / Sửa lỗi`;
+            : `${ico("wand")} Tối ưu`;
     },
 
     // Thu thập dữ liệu từ các ô và build ra cấu trúc Markdown chuẩn tiếng Việt
@@ -759,10 +768,31 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
             }
         });
 
-        const outputContainer = document.getElementById("markdown-output");
         const finalMarkdown = hasContent ? markdownResult.trim() : "";
-        outputContainer.innerText = finalMarkdown || "Vui lòng nhập liệu ở các ô bên trái để tạo cấu trúc prompt...";
+        this.setMarkdownOutput(finalMarkdown);
         return finalMarkdown; // Chuỗi rỗng nếu chưa có nội dung — dùng để ghi lịch sử/lưu trữ
+    },
+
+    // Điểm ghi DUY NHẤT vào khung kết quả. Mọi nơi muốn đổi nội dung khung này đều
+    // phải đi qua đây, vì trạng thái rỗng có kiểu chữ riêng (căn giữa, cột hẹp, font
+    // thường) — ghi thẳng innerText mà quên tắt class .is-empty sẽ làm prompt thật
+    // hiển thị bằng kiểu của trạng thái rỗng.
+    setMarkdownOutput(markdown) {
+        const output = document.getElementById("markdown-output");
+        const isEmpty = !markdown;
+        output.innerText = isEmpty
+            ? "Điền các trường bên trái để xem cấu trúc prompt hiện ra ở đây."
+            : markdown;
+        output.classList.toggle("is-empty", isEmpty);
+    },
+
+    // Điểm ĐỌC duy nhất: trả về chuỗi rỗng khi khung đang ở trạng thái rỗng, nhờ vậy
+    // nút Sao chép / Lưu không bao giờ lấy nhầm câu hướng dẫn làm nội dung prompt.
+    // Trước đây hai nút đó tự so `startsWith("Vui lòng")` — đổi câu hướng dẫn một lần
+    // là cả hai guard hỏng ngay mà không báo lỗi.
+    getMarkdownOutput() {
+        const output = document.getElementById("markdown-output");
+        return output.classList.contains("is-empty") ? "" : output.innerText.trim();
     },
 
     // --- LỊCH SỬ PROMPT (tự động lưu tại các điểm chốt, tối đa 50 mục) ---
@@ -835,8 +865,10 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
         this.currentCategory = entry.category;
         this.renderFormFields(); // Làm mới form theo đúng nhóm công việc đã lưu
 
-        document.getElementById("idea-input").value = entry.idea;
-        document.getElementById("markdown-output").innerText = entry.prompt;
+        const ideaInput = document.getElementById("idea-input");
+        ideaInput.value = entry.idea;
+        this.autoResize(ideaInput); // Nới ô ý tưởng vừa với nội dung đã khôi phục
+        this.setMarkdownOutput(entry.prompt);
         this.lastHistoryPrompt = entry.prompt;
 
         this.closeHistory();
@@ -893,8 +925,8 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
     },
 
     async savePromptToLibrary() {
-        const markdown = document.getElementById("markdown-output").innerText;
-        if (!markdown || markdown.startsWith("Vui lòng")) {
+        const markdown = this.getMarkdownOutput();
+        if (!markdown) {
             this.showToast("Chưa có nội dung prompt để lưu!", "error");
             return;
         }

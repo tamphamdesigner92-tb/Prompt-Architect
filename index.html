@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prompt Architect - Trợ Lý Khởi Tạo Prompt Chuyên Nghiệp</title>
+    <!-- Inter là font được thiết kế rất sát SF Pro. Trên máy Mac, -apple-system đứng
+         đầu font stack nên vẫn dùng SF Pro thật; Inter chỉ phục vụ Windows/Linux.
+         Nếu không có mạng thì lùi về Segoe UI như trước, giao diện vẫn dùng được. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -19,8 +26,8 @@
                 <path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.2 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8z"/>
             </symbol>
             <symbol id="i-settings" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="3.2"/>
-                <path d="M12 2.8v2.4M12 18.8v2.4M4.5 7.5l2 1.2M17.5 15.3l2 1.2M4.5 16.5l2-1.2M17.5 8.7l2-1.2"/>
+                <circle cx="12" cy="12" r="2.9"/>
+                <path d="M19.2 14.6a1.5 1.5 0 0 0 .3 1.7l.1.1a1.8 1.8 0 1 1-2.5 2.5l-.1-.1a1.5 1.5 0 0 0-1.7-.3 1.5 1.5 0 0 0-.9 1.4v.3a1.8 1.8 0 1 1-3.6 0v-.2a1.5 1.5 0 0 0-1-1.4 1.5 1.5 0 0 0-1.7.3l-.1.1a1.8 1.8 0 1 1-2.5-2.5l.1-.1a1.5 1.5 0 0 0 .3-1.7 1.5 1.5 0 0 0-1.4-.9h-.3a1.8 1.8 0 1 1 0-3.6h.2a1.5 1.5 0 0 0 1.4-1 1.5 1.5 0 0 0-.3-1.7l-.1-.1a1.8 1.8 0 1 1 2.5-2.5l.1.1a1.5 1.5 0 0 0 1.7.3h.1a1.5 1.5 0 0 0 .9-1.4v-.3a1.8 1.8 0 1 1 3.6 0v.2a1.5 1.5 0 0 0 .9 1.4 1.5 1.5 0 0 0 1.7-.3l.1-.1a1.8 1.8 0 1 1 2.5 2.5l-.1.1a1.5 1.5 0 0 0-.3 1.7v.1a1.5 1.5 0 0 0 1.4.9h.3a1.8 1.8 0 1 1 0 3.6h-.2a1.5 1.5 0 0 0-1.4.9z"/>
             </symbol>
             <symbol id="i-idea" viewBox="0 0 24 24">
                 <path d="M9.5 17.5h5M10 21h4M12 3a6 6 0 0 0-3.5 10.9V17.5h7v-3.6A6 6 0 0 0 12 3z"/>
@@ -33,6 +40,10 @@
                 <rect x="3.5" y="5" width="17" height="14" rx="2.5"/>
                 <circle cx="9" cy="10" r="1.6"/><path d="M4.5 17l4.5-4 4 3.5 3-2.5 3.5 3"/>
             </symbol>
+            <symbol id="i-copy" viewBox="0 0 24 24">
+                <rect x="9" y="9" width="11.5" height="11.5" rx="2.5"/>
+                <path d="M15.5 6V5.5a2 2 0 0 0-2-2H5.5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2H6"/>
+            </symbol>
             <symbol id="i-save" viewBox="0 0 24 24">
                 <path d="M5.5 3.5h9.5l4 4v13a1 1 0 0 1-1 1H5.5a1 1 0 0 1-1-1v-16a1 1 0 0 1 1-1z"/>
                 <path d="M8 3.5v5.5h7V3.5M8 15.5h8"/>
@@ -43,6 +54,44 @@
             </symbol>
             <symbol id="i-user" viewBox="0 0 24 24">
                 <circle cx="12" cy="8.5" r="3.7"/><path d="M4.8 20.5a7.2 7.2 0 0 1 14.4 0"/>
+            </symbol>
+
+            <!-- Icon cho 6 nhóm công việc trên sidebar -->
+            <symbol id="i-cat-vibe" viewBox="0 0 24 24">
+                <rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/>
+                <path d="M3.5 9h17M6.6 6.7h.01M9.2 6.7h.01"/>
+            </symbol>
+            <symbol id="i-cat-problem" viewBox="0 0 24 24">
+                <circle cx="12" cy="13.5" r="4.8"/>
+                <path d="M12 8.7V5.5M8.6 10.1 6.8 8.3M15.4 10.1l1.8-1.8M7.2 13.5H4M20 13.5h-3.2M8.6 16.9l-1.8 1.8M15.4 16.9l1.8 1.8"/>
+            </symbol>
+            <symbol id="i-cat-content" viewBox="0 0 24 24">
+                <path d="M4.2 19.8l4.1-1 10-10a2.1 2.1 0 0 0-3-3l-10 10z"/>
+                <path d="M14.6 6.3l3.1 3.1"/>
+            </symbol>
+            <symbol id="i-cat-media" viewBox="0 0 24 24">
+                <rect x="3.5" y="5" width="17" height="14" rx="2.5"/>
+                <circle cx="9" cy="10" r="1.6"/><path d="M4.5 17l4.5-4 4 3.5 3-2.5 3.5 3"/>
+            </symbol>
+            <symbol id="i-cat-analysis" viewBox="0 0 24 24">
+                <path d="M4 19.8h16"/>
+                <path d="M7.6 19.8v-7.4M12 19.8V6.6M16.4 19.8v-5.2"/>
+            </symbol>
+            <symbol id="i-cat-research" viewBox="0 0 24 24">
+                <circle cx="10.8" cy="10.6" r="5.6"/>
+                <path d="M14.9 14.7l4.6 4.6"/>
+                <path d="M8.4 9.2h4.8M8.4 11.9h3.2"/>
+            </symbol>
+
+            <!-- Hai nút hành động AI -->
+            <symbol id="i-sparkle" viewBox="0 0 24 24">
+                <path d="M10.5 3.2l1.5 4.1 4.1 1.5-4.1 1.5-1.5 4.1L9 10.3 4.9 8.8 9 7.3z"/>
+                <path d="M17.8 14.6l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>
+            </symbol>
+            <symbol id="i-wand" viewBox="0 0 24 24">
+                <path d="M4.5 19.5L13.8 10.2"/>
+                <path d="M17.2 3.4l.9 2.4 2.4.9-2.4.9-.9 2.4-.9-2.4-2.4-.9 2.4-.9z"/>
+                <path d="M13 9.4l1.9 1.9"/>
             </symbol>
         </defs>
     </svg>
@@ -63,16 +112,9 @@
     </div>
 
     <div id="main-screen" class="screen">
-        <header class="glass-header">
+        <!-- Toolbar mỏng kiểu macOS: chỉ tên app + các control ở mép phải -->
+        <header class="toolbar">
             <div class="logo">Prompt Architect</div>
-            <nav class="category-menu">
-                <button class="menu-item active" data-category="vibe">Vibe Coding</button>
-                <button class="menu-item" data-category="problem">Giải Quyết Lỗi & Tối Ưu</button>
-                <button class="menu-item" data-category="content">Sáng Tạo Nội Dung</button>
-                <button class="menu-item" data-category="media">Sáng Tạo Ảnh/Video</button>
-                <button class="menu-item" data-category="analysis">Phân Tích Dữ Liệu</button>
-                <button class="menu-item" data-category="research">Nghiên Cứu Chuyên Sâu</button>
-            </nav>
             <div class="header-actions">
                 <div id="user-profile-tag" class="user-tag"></div>
                 <button id="btn-open-history" class="btn-icon" title="Lịch sử prompt" aria-label="Lịch sử prompt"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-history"></use></svg></button>
@@ -81,8 +123,23 @@
             </div>
         </header>
 
-        <main class="workspace">
-            <section class="input-panel glass-card">
+        <div class="app-shell">
+            <!-- Sidebar dọc thay cho segmented control: 6 nhãn tiếng Việt dài vượt quá
+                 sức của segmented control (Apple dùng nó cho 2-5 mục ngắn). Đây là
+                 cách macOS Mail/Notes/Settings điều hướng. -->
+            <nav class="sidebar" aria-label="Nhóm công việc">
+                <p class="sidebar-heading">Nhóm công việc</p>
+                <ul class="sidebar-list">
+                    <li><button class="menu-item active" data-category="vibe"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-cat-vibe"></use></svg><span>Vibe Coding</span></button></li>
+                    <li><button class="menu-item" data-category="problem"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-cat-problem"></use></svg><span>Giải Quyết Lỗi &amp; Tối Ưu</span></button></li>
+                    <li><button class="menu-item" data-category="content"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-cat-content"></use></svg><span>Sáng Tạo Nội Dung</span></button></li>
+                    <li><button class="menu-item" data-category="media"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-cat-media"></use></svg><span>Sáng Tạo Ảnh/Video</span></button></li>
+                    <li><button class="menu-item" data-category="analysis"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-cat-analysis"></use></svg><span>Phân Tích Dữ Liệu</span></button></li>
+                    <li><button class="menu-item" data-category="research"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-cat-research"></use></svg><span>Nghiên Cứu Sâu</span></button></li>
+                </ul>
+            </nav>
+
+            <main class="input-panel content-panel">
                 <h2 id="current-category-title">Cấu trúc Prompt</h2>
 
                 <div class="idea-box">
@@ -90,7 +147,7 @@
                     <span class="field-desc">Mô tả ngắn gọn ý tưởng, AI sẽ tự động gợi ý nội dung cho các trường bên dưới. Bạn có thể chỉnh sửa lại sau.</span>
                     <div class="idea-input-row">
                         <textarea id="idea-input" rows="2" placeholder="Ví dụ: Tôi muốn phân tích dữ liệu bán hàng để tìm sản phẩm chủ lực..."></textarea>
-                        <button id="btn-suggest" class="btn-primary">✨ Gợi ý bằng AI</button>
+                        <button id="btn-suggest" class="btn-primary"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-sparkle"></use></svg> Gợi ý bằng AI</button>
                     </div>
                 </div>
 
@@ -124,25 +181,22 @@
 
                 <form id="dynamic-prompt-form">
                     </form>
-            </section>
+            </main>
 
-            <section class="output-panel glass-card">
+            <aside class="output-panel content-panel">
                 <div class="output-header">
                     <h2>Kết Quả Prompt (Markdown)</h2>
                     <div class="output-actions">
-                        <button id="btn-optimize" class="btn-secondary">🪄 Tối ưu / Sửa lỗi</button>
+                        <button id="btn-optimize" class="btn-tinted"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-wand"></use></svg> Tối ưu</button>
                         <button id="btn-save-prompt" class="btn-secondary"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-save"></use></svg> Lưu</button>
-                        <button id="btn-copy-prompt" class="btn-secondary">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                            Sao chép
-                        </button>
+                        <button id="btn-copy-prompt" class="btn-secondary"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-copy"></use></svg> Sao chép</button>
                     </div>
                 </div>
                 <div class="output-container">
-                    <pre><code id="markdown-output">Vui lòng nhập liệu ở các ô bên trái để tạo cấu trúc prompt...</code></pre>
+                    <pre><code id="markdown-output" class="is-empty">Điền các trường bên trái để xem cấu trúc prompt hiện ra ở đây.</code></pre>
                 </div>
-            </section>
-        </main>
+            </aside>
+        </div>
     </div>
 
     <div id="settings-modal" class="modal-overlay hidden" role="dialog" aria-modal="true"

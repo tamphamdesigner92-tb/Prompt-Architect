@@ -103,6 +103,8 @@ Server Express tối giản, không có view engine/framework nào khác:
 
 ## Lịch sử prompt & Thư viện lưu trữ (app.js)
 
+- **Khung kết quả có DUY NHẤT một cặp hàm đọc/ghi**: `setMarkdownOutput(markdown)` và `getMarkdownOutput()`. Bắt buộc đi qua chúng, **không** gán `markdown-output.innerText` trực tiếp. Lý do: trạng thái rỗng dùng class `.is-empty` với kiểu chữ riêng (căn giữa, cột hẹp 30ch, font thường thay vì mono) — ghi thẳng `innerText` mà quên tắt class sẽ làm prompt thật hiển thị bằng kiểu của trạng thái rỗng. `getMarkdownOutput()` trả chuỗi rỗng khi đang ở trạng thái rỗng, nhờ vậy nút Sao chép/Lưu không lấy nhầm câu hướng dẫn làm nội dung prompt (trước đây hai nút tự so `startsWith("Vui lòng")` — đổi câu hướng dẫn một lần là cả hai guard hỏng lặng lẽ).
+- **Đặt lại giá trị textarea thì phải gọi lại `autoResize(el)`**: hàm này ghi `height` dạng inline style, nên xoá/thay nội dung mà không gọi lại sẽ để ô giữ nguyên chiều cao cũ.
 - **Lịch sử**: tự động ghi qua `commitHistoryEntry(idea, prompt, category)`, gọi tại 2 "điểm chốt": sau khi `applySuggestions()` áp dụng gợi ý AI thành công, và khi bấm nút Sao chép — **không** ghi mỗi lần gõ phím (sẽ lấp đầy 50 slot bằng bản nháp). So sánh với `lastHistoryPrompt` để tránh ghi trùng lặp liên tiếp. Modal `#history-modal`, nút "Dùng lại ý tưởng này" chỉ khôi phục lại ô ý tưởng + chuyển đúng nhóm công việc + hiển thị lại markdown đã lưu — không khôi phục từng field con (đơn giản hoá, người dùng bấm lại "✨ Gợi ý bằng AI" nếu cần).
 - **Thư viện lưu trữ**: nút "💾 Lưu" ở `.output-header` gọi `savePromptToLibrary()` → `POST /api/saved` → tự mở modal `#saved-modal` (tab "Đã lưu"). Mỗi card có ô ảnh vuông cố định (`.saved-thumb`, 104×104px) — ảnh con dùng `max-width/max-height:100%; width/height:auto` (không phải `object-fit:cover`) để chỉ scale-down theo chiều giới hạn, **không bóp méo, không crop vuông**.
 - **Nén ảnh phía client** (`compressImageFile()`): đọc file qua `createImageBitmap(file, {imageOrientation: "from-image"})` (tự sửa xoay theo EXIF, không cần parse EXIF thủ công) → resize giữ nguyên tỉ lệ gốc, giới hạn cạnh dài nhất ~800px → xuất `canvas.toDataURL("image/jpeg", 0.72)` → luôn ra `.jpg` dù ảnh gốc định dạng gì, gửi lên `PUT /api/saved/:id/image`.
@@ -113,6 +115,36 @@ Server Express tối giản, không có view engine/framework nào khác:
 ### Hệ token (quan trọng nhất — đọc trước khi thêm component)
 
 Toàn bộ màu và cỡ chữ đi qua token trong `:root`; theme `evening` chỉ khai báo lại **cùng bộ token đó**, **không** override từng component. Số lượng selector `html[data-theme="evening"] .xxx` hiện là **0** — nếu bạn phải thêm một cái, gần như chắc chắn là đang hardcode sai chỗ.
+
+### Bố cục & material (thiết kế lại theo macOS)
+
+Layout là **3 cột kiểu macOS**: toolbar mỏng 52px ở trên, rồi `.app-shell` = `sidebar | input-panel | output-panel`. Sidebar dọc thay cho segmented control cũ vì 6 nhãn tiếng Việt dài vượt quá sức của segmented control (Apple dùng nó cho 2-5 mục ngắn). Sidebar giữ nguyên `.menu-item` + `data-category` nên `app.js` không cần biết layout đã đổi.
+
+Material chia **hai lớp** — đây là điểm quan trọng nhất và là cách macOS thật sự làm:
+
+| Lớp | Token | Độ đục | Nơi dùng | Lý do |
+|---|---|---|---|---|
+| chrome | `--chrome-bg` | 0.55 | toolbar, sidebar, welcome card | Chỉ chứa nhãn ngắn nên trong được, để màu blob lộ qua → kính mới "đọc" ra là kính |
+| nội dung | `--content-bg` | 0.90 | `.content-panel`, modal | Chứa chữ nhỏ và dài nên phải đục hơn để đạt tương phản |
+
+Một lớp kính duy nhất **không thể** vừa trong vừa rõ chữ — đó là lý do lần trước tăng opacity lên 0.72 thì glass biến mất.
+
+Nền là **3 blob màu mờ** (`--blob-1/2/3`) vẽ trong `body::before`, không phải gradient phẳng. Blob dùng màu **sáng nhưng đậm sắc** (`rgba(217,190,255,0.85)`) thay vì tối và nhạt: giữ độ sáng cao để chữ đọc được trong khi vẫn thấy rõ màu. `inset` của `body::before` phải nhỏ (−90px) — dùng `-25%` sẽ đẩy tâm blob ra ngoài khung nhìn và blob gần như tàng hình.
+
+Các `.content-panel` là **card nổi** (bo 16px, có khe hở 14px) để blob lộ ra ở khe và thấy được mép kính + vệt sáng `--specular` ở cạnh trên.
+
+**Font:** `-apple-system` vẫn đứng đầu stack (Mac dùng SF Pro thật), thêm **Inter** từ Google Fonts cho Windows/Linux. Không có mạng thì lùi về Segoe UI. Đây là phụ thuộc ngoài duy nhất của frontend.
+
+### Phân cấp nút (4 mức của Apple)
+
+| Class | Kiểu | Dùng cho |
+|---|---|---|
+| `.btn-primary` | filled accent, bo 12px | Hành động chính — mỗi màn hình chỉ một (nút "Gợi ý bằng AI") |
+| `.btn-tinted` | nền tint accent + chữ accent, capsule | Hành động phụ quan trọng (nút "Tối ưu") |
+| `.btn-secondary` | nền `--fill-3`, capsule | Hành động trung tính ("Lưu", "Sao chép") |
+| `.btn-plain` | trong suốt + chữ accent | Hành động nhẹ |
+
+Đừng dùng `--accent-color` cho thứ không phải hành động. `.field-example` từng là chữ xanh in nghiêng — mỗi trường một dòng xanh làm cả cột bị nhiễu, và accent bị tiêu vào chú thích.
 
 | Nhóm token | Giá trị | Dùng cho |
 |---|---|---|
@@ -150,6 +182,10 @@ Nền 3 theme cố tình **bão hoà thấp**: nguyên tắc Apple là nền g�
 - Mọi tính năng mới nên đọc động từ `PROMPT_STRUCTURES` thay vì hardcode theo nhóm.
 - Khi thêm UI mới: dùng token sẵn có (`--fill-*`, `--text-*`), **không hardcode `rgba()` hay `font-size` bằng số tho**. Nếu thấy mình cần viết `html[data-theme="evening"] .xxx` thì hãy dừng lại — token đã xử lý cả 2 theme.
 - Control mới phải thêm vào khối `:focus-visible` dùng chung; icon mới thêm `<symbol>` vào sprite thay vì dùng emoji.
-- Đổi màu thì tính lại tương phản WCAG (ngưỡng 4.5:1 cho text thường) trước khi commit — hiện cả 4 theme đều đạt.
+- Đổi màu thì tính lại tương phản WCAG (ngưỡng 4.5:1 cho text thường) trước khi commit — hiện cả 4 theme đều đạt trên **cả hai** lớp material. Alpha blob 0.85 là mức tối đa còn đạt chuẩn với bộ màu hiện tại; đổi màu blob sang tông tối hơn thì phải hạ alpha.
+- Đừng đặt nội dung chữ nhỏ/dài lên lớp chrome (0.55) — nó chỉ đủ tương phản cho nhãn ngắn.
+- Chụp ảnh kiểm tra giao diện: Edge headless có sẵn trên Windows, không cần cài Playwright:
+  `& "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --headless=new --disable-gpu --window-size=1600,1000 --screenshot=out.png --virtual-time-budget=6000 http://localhost:8931/`
+  Lưu ý `updateThemeByTime()` ghi `data-theme` theo giờ hệ thống nên không ép theme được bằng cách sửa thuộc tính trên `<html>`.
 - Khi sửa route trong `server.js`: luôn ghi file qua `writeJSONAtomic()` (không gọi `fs.writeFileSync` trực tiếp lên `history.json`/`library.json`) để giữ tính atomic.
 - Test nhanh: `preview_start` với config `prompt-architect` (cổng 8931, chạy `npm start`). Nếu chưa có `node_modules`, chạy `npm install` trước.

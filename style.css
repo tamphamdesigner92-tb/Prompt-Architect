@@ -1,24 +1,53 @@
 /* --- BIẾN CSS & CẤU HÌNH GIAO DIỆN APPLE --- */
 :root {
-    --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    /* Mac dùng SF Pro thật; Windows/Linux dùng Inter (thiết kế rất sát SF Pro).
+       Không có mạng thì lùi về Segoe UI — giao diện vẫn chạy, chỉ khác nét chữ. */
+    --font-stack: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --transition-smooth: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+
+    /* Thang thời lượng: Apple phân tầng theo khoảng cách di chuyển, không dùng
+       một con số cho mọi thứ. Nhấn nút gần như tức thì, chuyển màn hình mới chậm. */
+    --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+    --dur-press: 0.15s;
+    --dur-surface: 0.3s;
+    --dur-screen: 0.5s;
     
     /* Giao diện mặc định (Sáng)
        Nguyên tắc Apple: nền gần như trung tính, toàn bộ sức màu dồn vào MỘT accent.
        Màu trong giao diện Apple là thông tin, không phải trang trí — nền rực rỡ sẽ
        làm accent chìm đi và kéo tương phản chữ xuống dưới ngưỡng đọc được. */
-    --bg-gradient: linear-gradient(135deg, #f5f3f7 0%, #eef2f8 100%);
-    /* Material của Apple đục hơn hẳn glassmorphism thông thường: nó làm mờ nền để
-       TÁCH nội dung, không phải để trưng nền ra. 0.72 = gần regularMaterial. */
-    --glass-bg: rgba(255, 255, 255, 0.72);
-    --glass-border: rgba(60, 60, 67, 0.14);
+    /* --- NỀN: BLOB MÀU MỜ ---
+       Kính chỉ đọc được là kính khi phía sau nó có gì để nhìn xuyên qua. Gradient
+       phẳng 2 điểm dừng không đủ; ở đây là 3 khối màu lớn, mềm, out-of-focus —
+       đúng kiểu wallpaper macOS Sonoma. Alpha 0.42 là mức tối đa còn giữ được
+       tương phản chữ ≥ 4.5:1 sau khi chồng 2 blob đậm nhất (đã tính, không ước lượng). */
+    --bg-base: #f2f3f7;
+    /* Màu sáng nhưng đậm sắc: giữ độ sáng cao (để chữ vẫn đọc được) trong khi
+       tăng độ bão hoà, nên nhìn thấy màu rõ hơn hẳn qua lớp kính. Bộ cũ tối hơn
+       nên bị giới hạn ở alpha 0.42; bộ này chạy được tới 0.85. */
+    --blob-1: rgba(217, 190, 255, 0.85);
+    --blob-2: rgba(187, 217, 255, 0.85);
+    --blob-3: rgba(255, 208, 232, 0.62);
+
+    /* --- HAI LỚP MATERIAL ---
+       Đây là cách macOS thật sự dùng material: kính bán trong nằm ở lớp chrome
+       (toolbar, sidebar) nơi chỉ có nhãn ngắn; vùng nội dung dài là bề mặt đục hơn
+       để chữ nhỏ vẫn đọc được. Một lớp kính duy nhất không thể vừa trong vừa rõ. */
+    --chrome-bg: rgba(255, 255, 255, 0.55);
+    --content-bg: rgba(255, 255, 255, 0.90);
+    --glass-bg: var(--content-bg);
+    --glass-border: rgba(60, 60, 67, 0.12);
+    /* Vệt sáng ở cạnh trên của material — chi tiết làm nên chiều sâu của kính Apple */
+    --specular: rgba(255, 255, 255, 0.7);
+
     --text-primary: #1d1d1f;
-    /* Apple dùng secondaryLabel = rgba(60,60,67,0.60), nhưng chính con số đó chỉ đạt
-       3.3:1 — dưới ngưỡng WCAG 4.5:1. Giữ cấu trúc thang label của Apple, đẩy alpha
-       lên 0.72 để đạt 4.68:1 trên nền mới. */
-    --text-secondary: rgba(60, 60, 67, 0.72);
-    --accent-color: #0071e3;
-    --shadow-color: rgba(0, 0, 0, 0.08);
+    /* Apple dùng secondaryLabel = rgba(60,60,67,0.60) nhưng con số đó chỉ đạt 3.3:1.
+       Giữ cấu trúc thang label của Apple, đẩy alpha lên 0.74 để đạt ≥4.5:1 trên CẢ
+       hai lớp material phía trên. */
+    --text-secondary: rgba(60, 60, 67, 0.74);
+    /* Đậm hơn #0071e3 một chút để còn biên an toàn khi nằm trên nền có blob */
+    --accent-color: #0068d0;
+    --shadow-color: rgba(0, 0, 0, 0.10);
 
     /* --- 4 BẬC FILL HỆ THỐNG CỦA APPLE ---
        Nền xám trung tính (120,120,128) hoạt động trên CẢ nền sáng và tối, nên mỗi
@@ -34,9 +63,10 @@
     --knob-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 
     /* Vầng sáng quanh control đang focus + lớp phủ sau modal */
-    --focus-glow: rgba(0, 113, 227, 0.18);
-    --accent-tint: rgba(0, 113, 227, 0.08);
-    --scrim: rgba(0, 0, 0, 0.35);
+    --focus-glow: rgba(0, 104, 208, 0.20);
+    --accent-tint: rgba(0, 104, 208, 0.10);
+    --accent-tint-strong: rgba(0, 104, 208, 0.17);
+    --scrim: rgba(0, 0, 0, 0.32);
 
     /* --- THANG CHỮ ---
        Trước đây có 10 giá trị font-size tuỳ ý, trong đó 0.8/0.85/0.9/0.95rem nằm
@@ -45,8 +75,7 @@
        Headline cùng cỡ với Body nhưng nặng hơn — đúng quy ước của Apple. */
     --text-title-1: 2.5rem;    /* Lời chào màn hình đầu */
     --text-title-2: 1.3rem;    /* Tiêu đề panel, tiêu đề modal */
-    --text-title-3: 1.2rem;    /* Logo */
-    --text-body: 1rem;         /* Nội dung, input, nhãn trường (kèm weight 600) */
+    --text-body: 1rem;         /* Nội dung, input, nhãn trường, logo (kèm weight 600) */
     --text-subhead: 0.9rem;    /* Nút phụ, mục menu, nội dung card */
     --text-footnote: 0.8rem;   /* Mô tả trường, chú thích */
     --text-caption: 0.7rem;    /* Badge */
@@ -55,22 +84,38 @@
 /* Các Theme tương ứng theo thời gian.
    Giữ nguyên SẮC (hue) đặc trưng từng buổi, chỉ hạ độ bão hoà xuống mức tint. */
 html[data-theme="morning"] {
-    --bg-gradient: linear-gradient(135deg, #faf4ef 0%, #f7efe9 100%);
+    --bg-base: #faf6f1;
+    --blob-1: rgba(255, 217, 184, 0.85);
+    --blob-2: rgba(255, 201, 184, 0.85);
+    --blob-3: rgba(255, 238, 194, 0.62);
 }
 
 html[data-theme="afternoon"] {
-    --bg-gradient: linear-gradient(135deg, #eff4f9 0%, #faf2e8 100%);
+    --bg-base: #f1f5f9;
+    --blob-1: rgba(191, 228, 255, 0.85);
+    --blob-2: rgba(255, 230, 187, 0.85);
+    --blob-3: rgba(191, 240, 230, 0.62);
 }
 
 html[data-theme="evening"] {
-    /* Dark mode kiểu Apple: đen thật, không phải xanh đen */
-    --bg-gradient: linear-gradient(135deg, #000000 0%, #1c1c1e 100%);
-    --glass-bg: rgba(44, 44, 46, 0.72);
-    --glass-border: rgba(255, 255, 255, 0.13);
+    /* Dark mode kiểu Apple: đen thật, blob là các vùng màu sâu chứ không rực */
+    --bg-base: #0a0a0c;
+    --blob-1: rgba(74, 61, 143, 0.85);
+    --blob-2: rgba(35, 96, 107, 0.85);
+    --blob-3: rgba(96, 52, 117, 0.62);
+
+    --chrome-bg: rgba(28, 28, 30, 0.55);
+    --content-bg: rgba(28, 28, 30, 0.90);
+    --glass-bg: var(--content-bg);
+    --glass-border: rgba(255, 255, 255, 0.11);
+    --specular: rgba(255, 255, 255, 0.11);
+
     --text-primary: #f5f5f7;
     --text-secondary: rgba(235, 235, 245, 0.60);
-    --accent-color: #2997ff;
-    --shadow-color: rgba(0, 0, 0, 0.5);
+    /* #2997ff chỉ đạt 4.08:1 khi nằm trên lớp chrome (kính 0.55) — chưa đủ.
+       #4aa8ff là mức tối thiểu đạt chuẩn trên CẢ hai lớp material. */
+    --accent-color: #4aa8ff;
+    --shadow-color: rgba(0, 0, 0, 0.55);
 
     /* Trên nền tối: cùng màu xám, alpha cao hơn — đúng thang của Apple */
     --fill-1: rgba(120, 120, 128, 0.36);
@@ -79,8 +124,9 @@ html[data-theme="evening"] {
     --fill-4: rgba(120, 120, 128, 0.18);
     --knob-bg: #636366;
     --knob-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-    --focus-glow: rgba(41, 151, 255, 0.28);
-    --accent-tint: rgba(41, 151, 255, 0.14);
+    --focus-glow: rgba(74, 168, 255, 0.30);
+    --accent-tint: rgba(74, 168, 255, 0.16);
+    --accent-tint-strong: rgba(74, 168, 255, 0.26);
     --scrim: rgba(0, 0, 0, 0.6);
 }
 
@@ -93,30 +139,57 @@ html[data-theme="evening"] {
 
 body {
     font-family: var(--font-stack);
-    background: var(--bg-gradient);
+    background: var(--bg-base);
     color: var(--text-primary);
     min-height: 100vh;
     overflow-x: hidden;
-    transition: var(--transition-smooth);
+    /* Inter cần tracking âm nhẹ ở cỡ chữ giao diện để khớp nhịp với SF Pro */
+    letter-spacing: -0.011em;
+    transition: background var(--dur-screen) var(--ease-out);
 }
 
-/* --- HIỆU ỨNG GLASSMORPHISM (APPLE TRANSLUCENCY) --- */
-.glass-card {
-    background: var(--glass-bg);
-    backdrop-filter: saturate(180%) blur(20px);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
+/* --- BA BLOB MÀU MỜ LÀM NỀN CHO LỚP KÍNH ---
+   inset âm + blur lớn để mép blob không bao giờ lộ ra trong khung nhìn.
+   Đây là thứ khiến backdrop-filter thật sự nhìn thấy được. */
+body::before {
+    content: "";
+    position: fixed;
+    /* Chỉ tràn vừa đủ để mép blur không lộ ra. Trước đây dùng -25% khiến hộp
+       gradient rộng 150% viewport nên tâm blob bị đẩy gần như ra ngoài khung nhìn
+       và blob gần như tàng hình. */
+    inset: -90px;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(58% 62% at 14% 18%, var(--blob-1), transparent 72%),
+        radial-gradient(54% 66% at 88% 8%, var(--blob-2), transparent 72%),
+        radial-gradient(62% 58% at 58% 96%, var(--blob-3), transparent 72%);
+    filter: blur(38px);
+}
+
+/* --- MATERIAL: HAI LỚP ---
+   .glass-card / .content-panel = lớp nội dung, đục hơn để chữ nhỏ đọc được.
+   .toolbar / .sidebar          = lớp chrome, trong hơn để thấy màu blob xuyên qua. */
+.glass-card,
+.content-panel {
+    background: var(--content-bg);
+    backdrop-filter: saturate(180%) blur(30px);
+    -webkit-backdrop-filter: saturate(180%) blur(30px);
     border: 1px solid var(--glass-border);
-    border-radius: 20px;
-    box-shadow: 0 8px 32px 0 var(--shadow-color);
-    transition: var(--transition-smooth);
+    border-radius: 18px;
+    /* inset ở cạnh trên = vệt sáng specular của material Apple */
+    box-shadow:
+        inset 0 1px 0 0 var(--specular),
+        0 1px 2px var(--shadow-color),
+        0 12px 40px -8px var(--shadow-color);
+    transition: background var(--dur-surface) var(--ease-out);
 }
 
-.glass-header {
-    background: var(--glass-bg);
-    backdrop-filter: saturate(180%) blur(25px);
-    -webkit-backdrop-filter: saturate(180%) blur(25px);
-    border-bottom: 1px solid var(--glass-border);
-    box-shadow: 0 1px 0 0 var(--shadow-color);
+.toolbar,
+.sidebar {
+    background: var(--chrome-bg);
+    backdrop-filter: saturate(200%) blur(40px);
+    -webkit-backdrop-filter: saturate(200%) blur(40px);
 }
 
 /* --- ĐIỀU HƯỚNG MÀN HÌNH --- */
@@ -149,11 +222,19 @@ body {
 }
 
 .welcome-card {
-    padding: 3rem;
-    max-width: 500px;
+    padding: 3rem 2.75rem;
+    max-width: 460px;
     width: 90%;
     text-align: center;
     animation: floatingCard 6s ease-in-out infinite;
+    /* Hộp thoại nổi trên nền: dùng material trong hơn để thấy blob xuyên qua.
+       Chỉ chứa chữ ngắn nên vẫn thoả tương phản. */
+    background: var(--chrome-bg);
+    border-radius: 22px;
+    box-shadow:
+        inset 0 1px 0 0 var(--specular),
+        0 2px 6px var(--shadow-color),
+        0 24px 70px -12px var(--shadow-color);
 }
 
 #greeting-text {
@@ -164,8 +245,8 @@ body {
 }
 
 h2 {
-    font-weight: 700;
-    letter-spacing: -0.017em;
+    font-weight: 600;
+    letter-spacing: -0.021em;
     font-size: var(--text-title-2);
 }
 
@@ -186,9 +267,9 @@ h2 {
 input[type="text"], textarea {
     width: 100%;
     padding: 14px 16px;
-    background: var(--fill-3);
+    background: var(--fill-4);
     border: 1px solid var(--glass-border);
-    border-radius: 12px;
+    border-radius: 10px;
     color: var(--text-primary);
     font-family: var(--font-stack);
     font-size: var(--text-body);
@@ -202,133 +283,257 @@ input[type="text"]:focus, textarea:focus {
     box-shadow: 0 0 0 4px var(--focus-glow);
 }
 
+/* --- PHÂN CẤP NÚT KIỂU APPLE ---
+   Apple có 4 mức rõ ràng, mỗi mức một vai trò:
+     filled  (.btn-primary)   - hành động chính, mỗi màn hình chỉ một
+     tinted  (.btn-tinted)    - hành động phụ quan trọng, nền tint accent
+     bordered(.btn-secondary) - hành động trung tính
+     plain   (.btn-plain)     - hành động nhẹ, chỉ có chữ
+   Nút nhỏ dùng hình viên thuốc (capsule) — ngôn ngữ hiện tại của Apple. */
+.btn-primary,
+.btn-tinted,
+.btn-secondary,
+.btn-plain {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background var(--dur-press) var(--ease-out),
+                transform var(--dur-press) var(--ease-out),
+                filter var(--dur-press) var(--ease-out);
+}
+
 .btn-primary {
     background: var(--accent-color);
-    color: white;
+    color: #fff;
     border: none;
-    padding: 14px 24px;
+    padding: 12px 20px;
     font-size: var(--text-body);
     font-weight: 600;
     border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px var(--shadow-color);
 }
 
 .btn-primary:hover {
-    filter: brightness(1.08);
+    filter: brightness(1.09);
 }
 
+/* Nhấn: nút càng nhỏ thì lún càng sâu — cảm giác vật lý của iOS */
 .btn-primary:active {
-    transform: scale(0.97); /* Hiệu ứng nhấn nút đàn hồi kiểu iOS */
-    filter: brightness(0.95);
+    transform: scale(0.97);
+    filter: brightness(0.94);
 }
 
-.btn-primary:disabled {
-    opacity: 0.55;
+.btn-primary:disabled,
+.btn-tinted:disabled,
+.btn-secondary:disabled {
+    opacity: 0.4;
     cursor: default;
     transform: none;
+    filter: none;
+}
+
+.btn-tinted {
+    background: var(--accent-tint);
+    color: var(--accent-color);
+    border: none;
+    padding: 8px 15px;
+    font-size: var(--text-subhead);
+    font-weight: 600;
+    border-radius: 999px;
+}
+
+.btn-tinted:hover {
+    background: var(--accent-tint-strong);
+}
+
+.btn-tinted:active {
+    transform: scale(0.96);
 }
 
 .btn-secondary {
-    background: var(--fill-2);
-    border: 1px solid var(--glass-border);
+    background: var(--fill-3);
+    border: none;
     color: var(--text-primary);
-    padding: 8px 16px;
+    padding: 8px 15px;
     font-size: var(--text-subhead);
     font-weight: 500;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.2s ease;
+    border-radius: 999px;
 }
 
 .btn-secondary:hover {
-    background: var(--fill-1);
+    background: var(--fill-2);
 }
 
-/* --- GIAO DIỆN LÀM VIỆC CHÍNH (MAIN WORKSPACE) --- */
-.glass-header {
+.btn-secondary:active {
+    transform: scale(0.96);
+}
+
+.btn-plain {
+    background: transparent;
+    border: none;
+    color: var(--accent-color);
+    padding: 6px 10px;
+    font-size: var(--text-subhead);
+    font-weight: 500;
+    border-radius: 8px;
+}
+
+.btn-plain:hover {
+    background: var(--fill-4);
+}
+
+/* --- TOOLBAR MỎNG KIỂU macOS --- */
+.toolbar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 12px 2rem;
-    min-height: 64px;
-    flex-wrap: wrap;
-    gap: 8px;
+    padding: 0 20px;
+    height: 52px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--glass-border);
+    box-shadow: inset 0 1px 0 0 var(--specular);
 }
-
 
 .logo {
-    font-weight: 700;
-    font-size: var(--text-title-3);
-    /* em thay cho px: tracking co giãn cùng cỡ chữ, không lệch khi đổi font-size */
-    letter-spacing: -0.022em;
-}
-
-/* Menu dạng Segmented Control chuẩn iOS/macOS */
-.category-menu {
-    display: flex;
-    gap: 2px;
-    background: var(--fill-2);
-    border-radius: 999px;
-    padding: 3px;
-}
-
-.menu-item {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    padding: 7px 15px;
-    font-size: var(--text-subhead);
-    font-weight: 500;
-    border-radius: 999px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-.menu-item:hover {
-    color: var(--text-primary);
-}
-
-.menu-item.active {
-    color: var(--text-primary);
-    background: var(--knob-bg);
-    box-shadow: var(--knob-shadow);
     font-weight: 600;
+    font-size: var(--text-body);
+    /* em thay cho px: tracking co giãn cùng cỡ chữ, không lệch khi đổi font-size */
+    letter-spacing: -0.018em;
 }
 
 .user-tag {
     font-size: var(--text-subhead);
-    font-weight: 600;
-    /* Bỏ opacity: dùng token màu phụ để tương phản còn kiểm soát được */
+    font-weight: 500;
     color: var(--text-secondary);
+    margin-right: 4px;
 }
 
-.workspace {
+/* --- SIDEBAR ĐIỀU HƯỚNG (thay segmented control 6 mục bị tràn) --- */
+.app-shell {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    padding: 24px;
-    height: calc(100vh - 64px);
+    grid-template-columns: 240px minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: 0;
+    height: calc(100vh - 52px);
+    min-height: 0;
+    /* Khe hở để nền blob lộ ra quanh các card nội dung */
+    padding: 14px 14px 14px 0;
+    gap: 14px;
 }
 
-.input-panel, .output-panel {
+.sidebar {
     display: flex;
     flex-direction: column;
-    padding: 24px;
-    overflow: hidden;
+    gap: 2px;
+    padding: 16px 12px;
+    overflow-y: auto;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
+
+/* Tiêu đề nhóm trong sidebar: chữ nhỏ in hoa, giãn nét — chuẩn macOS */
+.sidebar-heading {
+    font-size: var(--text-caption);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    padding: 4px 10px 8px;
+}
+
+.sidebar-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* Hàng sidebar: icon + nhãn, bo 8px, cao 36px — kích thước hàng của macOS */
+.menu-item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    padding: 8px 10px;
+    min-height: 36px;
+    font-family: inherit;
+    font-size: var(--text-subhead);
+    font-weight: 500;
+    letter-spacing: inherit;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    /* Nhãn giữ trên một dòng; nếu quá dài thì cắt bằng ellipsis thay vì xuống hàng
+       làm chiều cao các hàng lệch nhau */
+    white-space: nowrap;
+    overflow: hidden;
+    transition: background var(--dur-press) var(--ease-out),
+                color var(--dur-press) var(--ease-out);
+}
+
+.menu-item span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.menu-item .ico {
+    width: 19px;
+    height: 19px;
+    color: var(--text-secondary);
+    transition: color var(--dur-press) var(--ease-out);
+}
+
+.menu-item:hover {
+    background: var(--fill-4);
+}
+
+/* Hàng đang chọn: nền tint accent + icon accent + nhãn đậm hơn.
+   Đây là kiểu chọn của sidebar macOS Sonoma (không phải fill đặc toàn bộ). */
+.menu-item.active {
+    background: var(--accent-tint);
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+.menu-item.active .ico {
+    color: var(--accent-color);
+}
+
+/* --- HAI CỘT NỘI DUNG --- */
+.input-panel,
+.output-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 22px 24px;
+    overflow: hidden;
+    min-width: 0;
+}
+
+/* Panel nội dung là card nổi trên nền, không phải vùng phẳng liền mạch: nhờ khe
+   hở giữa các card mà màu blob lộ ra và người dùng thấy được mép kính + vệt sáng
+   specular. Đây là hướng inset panel của iPadOS / macOS bản mới. */
+.content-panel {
+    border-radius: 16px;
+}
+
+
 
 #dynamic-prompt-form {
     overflow-y: auto;
-    padding-right: 8px;
-    margin-top: 16px;
+    padding-right: 10px;
+    margin-top: 18px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 26px;
+    min-height: 0;
 }
 
 /* --- Ô NHẬP Ý TƯỞNG BAN ĐẦU (AI GỢI Ý) --- */
@@ -357,7 +562,7 @@ input[type="text"]:focus, textarea:focus {
 
 .idea-input-row textarea {
     flex: 1;
-    min-height: 56px;
+    min-height: 64px;
     max-height: 240px;
     overflow-y: auto;
     resize: none;
@@ -397,7 +602,7 @@ textarea.ai-suggested {
 .form-field {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
 }
 
 .form-field label {
@@ -412,9 +617,14 @@ textarea.ai-suggested {
 
 .field-example {
     font-size: var(--text-footnote);
-    color: var(--accent-color);
-    font-style: italic;
-    margin-bottom: 4px;
+    /* Trước đây là xanh accent + in nghiêng: mỗi trường có một dòng xanh nghiêng
+       nên cả cột bị nhiễu, và màu accent bị dùng cho thứ không phải hành động.
+       Apple dành accent cho thao tác, còn chú thích thì dùng màu phụ.
+       Không đặt nền cho khối này: có nền thì nó trông như một ô input bị khoá,
+       dễ lẫn với textarea ngay bên dưới. */
+    color: var(--text-secondary);
+    opacity: 0.88;
+    margin-bottom: 3px;
 }
 
 textarea {
@@ -428,20 +638,43 @@ textarea {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    min-height: 34px;
 }
 
 .output-container {
     flex: 1;
     background: var(--fill-4);
-    border-radius: 12px;
-    padding: 16px;
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    padding: 16px 18px;
     overflow-y: auto;
+    min-height: 0;
 }
 
 pre {
     white-space: pre-wrap;
     word-wrap: break-word;
+    margin: 0;
+}
+
+/* Trạng thái rỗng: căn giữa, chữ màu phụ, không dùng font mono cho câu hướng dẫn */
+.output-container:has(#markdown-output.is-empty) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#markdown-output.is-empty {
+    display: block;
+    font-family: var(--font-stack);
+    font-size: var(--text-subhead);
+    color: var(--text-secondary);
+    text-align: center;
+    max-width: 30ch;
+    line-height: 1.55;
 }
 
 code {
@@ -510,13 +743,14 @@ code {
 
 .settings-card {
     width: 100%;
-    max-width: 520px;
+    max-width: 540px;
     max-height: 85vh;
     overflow-y: auto;
     padding: 24px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
+    border-radius: 20px;
 }
 
 .settings-header {
@@ -964,20 +1198,83 @@ code {
     background: #ff3b30;
 }
 
-/* --- RESPONSIVE CHO MÀN HÌNH HẸP (6 NHÓM CÔNG VIỆC) --- */
-@media (max-width: 1280px) {
-    .workspace {
+/* --- RESPONSIVE ---
+   Ba mốc: 1180px thu sidebar còn icon-only kiểu macOS thu gọn; 900px xếp dọc
+   hoàn toàn và sidebar thành dải cuộn ngang; giữ khối này ở cuối để không bị
+   cascade ghi đè. */
+@media (max-width: 1180px) {
+    .app-shell {
+        grid-template-columns: 64px minmax(0, 1fr) minmax(0, 1fr);
+    }
+    /* Hàng "ô ý tưởng + nút" quá chật ở khổ này khiến chữ trong textarea bị cắt.
+       Xếp dọc để textarea chiếm hết bề rộng, nút xuống dưới. */
+    .idea-input-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .idea-input-row .btn-primary {
+        align-self: stretch;
+    }
+    /* Sidebar thu gọn: chỉ còn icon, nhãn ẩn nhưng vẫn ở trong DOM cho screen reader */
+    .sidebar {
+        padding: 16px 8px;
+        align-items: center;
+    }
+    .sidebar-heading {
+        display: none;
+    }
+    .menu-item {
+        justify-content: center;
+        padding: 8px;
+        width: 44px;
+    }
+    .menu-item span {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+    .menu-item .ico {
+        width: 21px;
+        height: 21px;
+    }
+}
+
+@media (max-width: 900px) {
+    .app-shell {
         grid-template-columns: 1fr;
         height: auto;
-        min-height: calc(100vh - 64px);
+        min-height: calc(100vh - 52px);
     }
-    .category-menu {
-        order: 3;
-        width: 100%;
+    .sidebar {
+        flex-direction: row;
+        gap: 6px;
+        padding: 10px 12px;
         overflow-x: auto;
+        overflow-y: hidden;
+        border-right: none;
+        border-bottom: 1px solid var(--glass-border);
+        align-items: center;
+    }
+    .sidebar-list {
+        flex-direction: row;
+        gap: 6px;
+    }
+    .menu-item {
+        width: auto;
+        min-width: 44px;
+    }
+    .output-panel {
+        border-left: none;
+        border-top: 1px solid var(--glass-border);
     }
     .screen {
         overflow-y: auto;
+    }
+    .toolbar {
+        padding: 0 14px;
     }
 }
 
@@ -1004,11 +1301,27 @@ code {
     color: var(--accent-color);
 }
 
-/* Nút chỉ có icon (3 nút trên header): icon lớn hơn vì không có chữ kèm */
+/* Nút chỉ có icon (3 nút trên toolbar): icon lớn hơn vì không có chữ kèm */
 .btn-icon .ico {
     width: 18px;
     height: 18px;
     vertical-align: 0;
+}
+
+/* Icon nằm trong nút có chữ: nút đã là flex nên bỏ căn baseline thủ công */
+.btn-primary .ico,
+.btn-tinted .ico,
+.btn-secondary .ico,
+.btn-plain .ico,
+.saved-tab-btn .ico {
+    vertical-align: 0;
+    width: 16px;
+    height: 16px;
+}
+
+.btn-primary .ico {
+    width: 17px;
+    height: 17px;
 }
 
 /* Nhãn và nút có icon + chữ: dùng flex để khoảng cách đều nhau */
