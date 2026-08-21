@@ -14,7 +14,7 @@
 
 | File | Vai trò |
 |------|---------|
-| `index.html` | Toàn bộ markup: màn hình chào mừng + màn hình làm việc chính + modal Lịch sử/Thư viện lưu trữ |
+| `index.html` | Toàn bộ markup: màn hình chào mừng + màn hình làm việc chính + màn hình `#shutdown-screen` (sau khi tắt server) + modal Lịch sử/Thư viện lưu trữ |
 | `app.js` | Toàn bộ logic frontend: dữ liệu cấu trúc prompt, state, sự kiện, gọi Ollama/Gemini, gọi API lịch sử/lưu trữ |
 | `style.css` | Toàn bộ style: theme theo giờ, glassmorphism, responsive |
 | `server.js` | Backend Express: phục vụ file tĩnh + API `/api/history`, `/api/saved`, `/api/trash`, đọc/ghi `data/` |
@@ -63,6 +63,7 @@ Quản lý toàn bộ state và hành vi. Các method chính:
 - `requestAISuggestions()` — gọi Ollama (chi tiết bên dưới)
 - `generateMarkdownPrompt()` — gom giá trị các textarea thành Markdown (`# LABEL\n- value`), cập nhật real-time, **trả về** chuỗi markdown (dùng để ghi lịch sử/lưu trữ)
 - `showToast(message, type)` — thông báo góc phải trên (`success`/`error`)
+- `quitApp()` / `waitServerStopped()` / `showShutdownScreen()` — nút Tắt ứng dụng (chi tiết bên dưới)
 - `commitHistoryEntry()` / `openHistory()` / `useHistoryEntry()` — Lịch sử prompt (chi tiết bên dưới)
 - `savePromptToLibrary()` / `openSaved()` / `compressImageFile()` — Thư viện lưu trữ + ảnh + thùng rác (chi tiết bên dưới)
 
@@ -99,7 +100,17 @@ Server Express tối giản, không có view engine/framework nào khác:
 - `data/library.json`: mảng `{id, idea, prompt, category, hasImage, status: "saved"|"trashed", createdAt, deletedAt}` — prompt đã lưu và đã xoá dùng chung 1 file, chỉ khác `status` (đổi trạng thái là 1 lần ghi atomic, tránh cửa sổ lỗi khi tách/ghép 2 file riêng).
 - `data/images/<id>.jpg`: 1 ảnh/entry, tên file = id của entry (không đổi khi chuyển saved ↔ trashed). Ảnh chỉ thật sự xoá khi xoá vĩnh viễn hoặc bị `purgeExpiredTrash()` dọn.
 - `purgeExpiredTrash()`: xoá các entry `status="trashed"` quá **30 ngày** kể từ `deletedAt` (kèm file ảnh). Chạy lúc server khởi động, mỗi 24h (`setInterval`), và đầu mỗi handler `/api/trash*` (purge-then-act).
-- Route đầy đủ: `GET/POST /api/history`, `GET/POST /api/saved`, `PUT/DELETE /api/saved/:id/image`, `DELETE /api/saved/:id` (chuyển vào thùng rác), `GET /api/trash`, `POST /api/trash/:id/restore`, `DELETE /api/trash/:id` (xoá vĩnh viễn).
+- Route đầy đủ: `GET /api/ping` (kiểm tra server còn sống), `POST /api/shutdown` (tắt hẳn app — xem mục dưới), `GET/POST /api/history`, `GET/POST /api/saved`, `PUT/DELETE /api/saved/:id/image`, `DELETE /api/saved/:id` (chuyển vào thùng rác), `GET /api/trash`, `POST /api/trash/:id/restore`, `DELETE /api/trash/:id` (xoá vĩnh viễn).
+
+## Tắt ứng dụng từ trong giao diện
+
+Trên Windows, `start-app.bat` khởi động server bằng `start "" /min cmd /c "npm start"` rồi tự đóng cửa sổ launcher — nên **không còn cửa sổ nào để bấm Ctrl+C**, server cứ chạy ngầm và giữ cổng 8931. Vì vậy có nút nguồn `#btn-quit` (`.btn-icon.btn-icon-danger`, icon `#i-power`) ở cuối toolbar:
+
+1. `quitApp()` — `confirm()` xác nhận → `POST /api/shutdown`. Response 404 nghĩa là server đang chạy là **bản cũ chưa có route này**, báo lỗi rõ ràng thay vì chờ vô ích.
+2. `waitServerStopped()` — poll `GET /api/ping` mỗi 250ms, tối đa 6 giây. **Chỉ khi `fetch` NÉM lỗi mới coi là đã tắt**; một response lỗi (kể cả 404) vẫn nghĩa là còn tiến trình giữ cổng. Quá hạn mà server còn sống → bật lại nút + toast lỗi, **không** báo thành công giả.
+3. `showShutdownScreen()` — đóng cả 3 modal rồi chuyển `#main-screen` → `#shutdown-screen` (dùng chung cơ chế class `.active` của `.screen`).
+
+Phía server, `POST /api/shutdown` chỉ nhận request từ localhost (`req.socket.remoteAddress`), trả JSON trước rồi mới đóng trong `res.on("finish")`: gọi `server.closeAllConnections()` (kết nối keep-alive sẽ giữ `server.close()` treo mãi) + `server.close(() => process.exit(0))`, kèm `setTimeout(..., 1500).unref()` làm chốt an toàn. Biến `server` được khai báo ở đầu file và gán bằng kết quả `app.listen()`.
 
 ## Lịch sử prompt & Thư viện lưu trữ (app.js)
 
@@ -152,6 +163,7 @@ Các `.content-panel` là **card nổi** (bo 16px, có khe hở 14px) để blob
 | `--text-primary` / `--text-secondary` | `#1d1d1f` / `rgba(60,60,67,0.72)` | Thang label kiểu Apple. **Lưu ý:** alpha là 0.72 chứ không phải 0.60 của Apple — con số 0.60 chỉ đạt 3.3:1, dưới ngưỡng WCAG |
 | `--glass-bg` / `--glass-border` | `rgba(255,255,255,0.72)` / `rgba(60,60,67,0.14)` | Material kiểu Apple. Đục hơn glassmorphism thường vì mục đích là **tách** nội dung |
 | `--knob-bg` / `--knob-shadow` | `#ffffff` / bóng mềm | Núm trắng nổi của segmented control |
+| `--danger-color` / `--danger-tint` | `#d70015` / `rgba(215,0,21,.12)` — evening dùng `#ff6961` | Hành động phá hủy: nút Tắt ứng dụng (`.btn-icon-danger`), xoá API key, bỏ ảnh tham chiếu. Không dùng `#ff3b30` của Apple: trên nền sáng nó chỉ đạt 3.0:1 |
 | `--focus-glow` / `--accent-tint` / `--scrim` | dẫn xuất từ accent | Vầng focus, nền hover accent, lớp phủ modal |
 | `--text-title-1/2/3`, `--text-body`, `--text-subhead`, `--text-footnote`, `--text-caption` | 7 bậc | Thang chữ. **Không viết `font-size` bằng số tho** — file hiện không còn giá trị rem nào rời rạc |
 

@@ -255,6 +255,9 @@ const AppState = {
         });
         ideaInput.addEventListener("input", () => this.autoResize(ideaInput));
 
+        // Tắt hẳn ứng dụng: dừng server local để trả lại cổng 8931
+        document.getElementById("btn-quit").addEventListener("click", () => this.quitApp());
+
         // --- SỰ KIỆN MÀN HÌNH CÀI ĐẶT AI ---
         document.getElementById("btn-open-settings").addEventListener("click", () => this.openSettings());
         document.getElementById("btn-close-settings").addEventListener("click", () => this.closeSettings());
@@ -298,6 +301,69 @@ const AppState = {
         });
     },
 
+
+    // --- TẮT HẲN ỨNG DỤNG (dừng server local, trả lại cổng) ---
+    // Trên Windows launcher chạy server trong một cửa sổ cmd thu nhỏ rồi tự đóng, nên
+    // người dùng không có chỗ nào bấm Ctrl+C: không có nút này thì server chạy ngầm mãi.
+    async quitApp() {
+        const confirmed = confirm(
+            "Tắt hẳn ứng dụng?\n\n" +
+            "Server local sẽ dừng và trả lại cổng 8931 cho hệ thống. " +
+            "Toàn bộ Lịch sử và Thư viện lưu trữ vẫn được giữ nguyên." + "\n\n" +
+            "Lưu ý: nội dung đang gõ mà chưa Lưu sẽ mất."
+        );
+        if (!confirmed) return;
+
+        const quitBtn = document.getElementById("btn-quit");
+        quitBtn.disabled = true;
+        this.showToast("Đang tắt server local...");
+
+        try {
+            const res = await fetch("/api/shutdown", { method: "POST" });
+            // 404 = server đang chạy là bản cũ (chưa có route này), có chờ cũng không tắt
+            if (res.status === 404) {
+                quitBtn.disabled = false;
+                this.showToast("Server đang chạy là bản cũ, chưa có chức năng tắt. Hãy đóng cửa sổ cmd của server rồi chạy lại start-app.", "error");
+                return;
+            }
+        } catch (_) {
+            // Server có thể đóng socket trước khi response về tới -> không coi là lỗi,
+            // để bước xác nhận bên dưới quyết định thật sự đã tắt hay chưa.
+        }
+
+        const stopped = await this.waitServerStopped();
+        if (stopped) {
+            this.showShutdownScreen();
+        } else {
+            quitBtn.disabled = false;
+            this.showToast("Không tắt được server. Hãy đóng cửa sổ cmd của server (hoặc bấm Ctrl+C trong đó).", "error");
+        }
+    },
+
+    // Chờ tới khi /api/ping không còn trả lời = tiến trình server đã thoát thật
+    async waitServerStopped(timeoutMs = 6000) {
+        const deadline = Date.now() + timeoutMs;
+        while (Date.now() < deadline) {
+            await new Promise(resolve => setTimeout(resolve, 250));
+            try {
+                // Chỉ khi fetch NÉM lỗi mới chắc là server đã tắt. Một response lỗi
+                // (kể cả 404) vẫn nghĩa là còn tiến trình nào đó đang giữ cổng.
+                await fetch(`/api/ping?t=${Date.now()}`, { cache: "no-store" });
+            } catch (_) {
+                return true; // Không kết nối được nữa -> đã tắt
+            }
+        }
+        return false;
+    },
+
+    showShutdownScreen() {
+        // Đóng mọi modal đang mở để không còn lớp phủ nào che màn hình tạm biệt
+        ["history-modal", "saved-modal", "settings-modal"].forEach(id => {
+            document.getElementById(id).classList.add("hidden");
+        });
+        document.getElementById("main-screen").classList.remove("active");
+        document.getElementById("shutdown-screen").classList.add("active");
+    },
 
     // --- QUẢN LÝ MODAL DÙNG CHUNG CHO CẢ 3 HỘP THOẠI ---
     // Trước đây modal chỉ toggle class "hidden": không đóng được bằng Esc, tiêu điểm

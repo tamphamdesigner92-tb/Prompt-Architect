@@ -144,7 +144,8 @@ if [ "$OPEN_OK" -eq 1 ]; then
 else
     echo "⚠️  Không tự mở được trình duyệt. Hãy tự mở địa chỉ: $URL"
 fi
-echo "Nhấn Ctrl+C để tắt server (hoặc đóng cửa sổ này)."
+echo "TẮT ỨNG DỤNG: bấm nút nguồn ở góc phải trên giao diện (dừng server, trả lại cổng $PORT),"
+echo "hoặc nhấn Ctrl+C tại cửa sổ này."
 
 # Giữ script chạy cùng server
 wait "$SERVER_PID"

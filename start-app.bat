@@ -88,4 +88,7 @@ start "" %URL%
 
 echo.
 echo Ung dung da mo trong trinh duyet.
-echo Dong cua so server (cua so thu nho duoi taskbar) de tat ung dung.
+echo.
+echo TAT UNG DUNG: bam nut nguon (bieu tuong o goc phai tren giao dien).
+echo Cach nay dung server va tra lai cong %PORT% cho may.
+echo Neu can, van co the dong cua so server thu nho duoi taskbar.

@@ -8,6 +8,9 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 8931;
 
+// Giữ tham chiếu tới HTTP server để route /api/shutdown đóng được nó một cách chủ động
+let server = null;
+
 const ROOT_DIR = __dirname;
 const DATA_DIR = path.join(ROOT_DIR, "data");
 const IMAGES_DIR = path.join(DATA_DIR, "images");
@@ -211,9 +214,39 @@ app.delete("/api/trash/:id", (req, res) => {
     res.json({ success: true });
 });
 
+// --- KIỂM TRA SERVER CÒN SỐNG (nút Tắt ứng dụng dùng để xác nhận đã tắt thật) ---
+app.get("/api/ping", (req, res) => res.json({ ok: true }));
+
+// --- TẮT ỨNG DỤNG TỪ TRONG GIAO DIỆN ---
+// Trên Windows, start-app.bat khởi động server ở một cửa sổ cmd thu nhỏ rồi tự đóng cửa
+// sổ launcher, nên người dùng không còn chỗ nào bấm Ctrl+C: server chạy ngầm và giữ cổng
+// 8931 mãi. Route này cho nút "Tắt ứng dụng" dừng tiến trình chủ động, trả lại cổng.
+// Chỉ nhận yêu cầu từ chính máy đang chạy (localhost) để máy khác trong LAN không tắt được.
+app.post("/api/shutdown", (req, res) => {
+    const LOCAL_ADDRESSES = ["127.0.0.1", "::1", "::ffff:127.0.0.1"];
+    if (!LOCAL_ADDRESSES.includes(req.socket.remoteAddress)) {
+        return res.status(403).json({ error: "Chỉ tắt được ứng dụng từ chính máy đang chạy" });
+    }
+
+    res.json({ success: true });
+
+    // Đợi response ra khỏi socket rồi mới đóng, để trình duyệt kịp nhận xác nhận
+    res.on("finish", () => {
+        console.log(`Nhận yêu cầu tắt từ giao diện. Đang dừng server, trả lại cổng ${PORT}...`);
+        if (server) {
+            // Kết nối keep-alive có thể giữ server.close() treo mãi -> đóng thẳng chúng
+            if (typeof server.closeAllConnections === "function") server.closeAllConnections();
+            server.close(() => process.exit(0));
+        }
+        // Chốt an toàn: còn kết nối nào chưa nhả thì vẫn thoát
+        setTimeout(() => process.exit(0), 1500).unref();
+    });
+});
+
 // --- PHỤC VỤ FILE TĨNH (index.html / app.js / style.css) ---
 app.use(express.static(ROOT_DIR));
 
-app.listen(PORT, () => {
+server = app.listen(PORT, () => {
     console.log(`Prompt Architect đang chạy tại http://localhost:${PORT}`);
+    console.log("Tắt ứng dụng: bấm nút nguồn ở góc phải giao diện, hoặc Ctrl+C tại cửa sổ này.");
 });

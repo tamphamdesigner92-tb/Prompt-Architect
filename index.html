@@ -52,6 +52,9 @@
                 <path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l.8 12.5a1 1 0 0 0 1 .9h7.4a1 1 0 0 0 1-.9L17.5 7"/>
                 <path d="M10.5 11v6M13.5 11v6"/>
             </symbol>
+            <symbol id="i-power" viewBox="0 0 24 24">
+                <path d="M12 3.5v7.5"/><path d="M7.3 6.6a7 7 0 1 0 9.4 0"/>
+            </symbol>
             <symbol id="i-user" viewBox="0 0 24 24">
                 <circle cx="12" cy="8.5" r="3.7"/><path d="M4.8 20.5a7.2 7.2 0 0 1 14.4 0"/>
             </symbol>
@@ -120,6 +123,8 @@
                 <button id="btn-open-history" class="btn-icon" title="Lịch sử prompt" aria-label="Lịch sử prompt"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-history"></use></svg></button>
                 <button id="btn-open-saved" class="btn-icon" title="Thư viện lưu trữ" aria-label="Thư viện lưu trữ"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-library"></use></svg></button>
                 <button id="btn-open-settings" class="btn-icon" title="Cài đặt AI" aria-label="Cài đặt AI"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-settings"></use></svg></button>
+                <!-- Tắt hẳn server local (trả lại cổng 8931) thay vì để nó chạy ngầm -->
+                <button id="btn-quit" class="btn-icon btn-icon-danger" title="Tắt ứng dụng" aria-label="Tắt ứng dụng"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-power"></use></svg></button>
             </div>
         </header>
 
@@ -237,6 +242,15 @@
                 <ul id="gemini-key-list"></ul>
                 <span id="key-rotation-status" class="field-desc"></span>
             </div>
+        </div>
+    </div>
+
+    <!-- Màn hình sau khi tắt server: tab vẫn còn nhưng app không còn backend nào để gọi -->
+    <div id="shutdown-screen" class="screen">
+        <div class="glass-card welcome-card">
+            <h1>Đã tắt ứng dụng</h1>
+            <p class="subtitle">Server local đã dừng và cổng <strong>8931</strong> được trả lại cho hệ thống. Mọi prompt trong Lịch sử và Thư viện lưu trữ vẫn còn nguyên trong thư mục <code>data/</code>.</p>
+            <p class="subtitle">Bạn có thể đóng tab này. Muốn dùng lại thì chạy <code>start-app.bat</code> (Windows) hoặc <code>start-app.sh</code> (macOS/Linux).</p>
         </div>
     </div>
 
