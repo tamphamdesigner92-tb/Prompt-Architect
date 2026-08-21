@@ -183,11 +183,15 @@ const AppState = {
 
         // Sự kiện chuyển đổi Menu các danh mục chuyên mục công việc
         document.querySelectorAll(".menu-item").forEach(btn => {
-            btn.addEventListener("click", (e) => {
+            btn.addEventListener("click", () => {
                 document.querySelectorAll(".menu-item").forEach(item => item.classList.remove("active"));
-                e.target.classList.add("active");
+                btn.classList.add("active");
 
-                this.currentCategory = e.target.getAttribute("data-category");
+                // Lấy data-category từ chính nút (btn), KHÔNG dùng e.target: nút chứa <svg>/<span>
+                // nên e.target thường là phần tử con -> getAttribute trả null -> làm hỏng state
+                const category = btn.dataset.category;
+                if (!PROMPT_STRUCTURES[category]) return; // Nút thiếu/ sai data-category thì bỏ qua
+                this.currentCategory = category;
                 this.renderFormFields();
                 this.showToast(`Đã chuyển sang cấu trúc: ${PROMPT_STRUCTURES[this.currentCategory].title}`);
             });
@@ -428,10 +432,24 @@ const AppState = {
         status.innerText = `Đang dùng key #${this.settings.activeKeyIndex + 1}/${this.settings.geminiKeys.length} — đã gợi ý ${this.settings.promptCount}/${AI_CONFIG.gemini.rotateAfter} lượt (đủ ${AI_CONFIG.gemini.rotateAfter} lượt sẽ tự chuyển key kế tiếp).`;
     },
 
+    // Điểm tra cứu DUY NHẤT cấu trúc của nhóm công việc đang chọn.
+    // Nếu currentCategory bị sai (nút thiếu data-category, dữ liệu cũ...) thì tự lùi
+    // về nhóm mặc định, thay vì để cả luồng gợi ý AI chết lặng lẽ vì TypeError.
+    getCategoryData() {
+        if (!PROMPT_STRUCTURES[this.currentCategory]) {
+            console.warn("Nhóm công việc không hợp lệ:", this.currentCategory, "-> lùi về vibe");
+            this.currentCategory = "vibe";
+            document.querySelectorAll(".menu-item").forEach(item => {
+                item.classList.toggle("active", item.dataset.category === "vibe");
+            });
+        }
+        return PROMPT_STRUCTURES[this.currentCategory];
+    },
+
     // Sinh các ô nhập liệu một cách động dựa vào cấu trúc được lựa chọn
     renderFormFields() {
         const formContainer = document.getElementById("dynamic-prompt-form");
-        const categoryData = PROMPT_STRUCTURES[this.currentCategory];
+        const categoryData = this.getCategoryData();
 
         document.getElementById("current-category-title").innerText = categoryData.title;
         formContainer.innerHTML = ""; // Xóa form cũ
@@ -552,7 +570,7 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
             return;
         }
 
-        const categoryData = PROMPT_STRUCTURES[this.currentCategory];
+        const categoryData = this.getCategoryData();
         const requestedCategory = this.currentCategory; // Chống ghi đè khi người dùng đổi tab giữa chừng
         const images = this.currentCategory === "media" ? this.referenceImages.slice() : [];
         const prompt = this.buildSuggestionPrompt(idea, categoryData, {
@@ -755,7 +773,7 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
 
     // Thu thập dữ liệu từ các ô và build ra cấu trúc Markdown chuẩn tiếng Việt
     generateMarkdownPrompt() {
-        const categoryData = PROMPT_STRUCTURES[this.currentCategory];
+        const categoryData = this.getCategoryData();
         let hasContent = false;
         let markdownResult = ``;
 
@@ -1275,7 +1293,7 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
             return;
         }
 
-        const categoryData = PROMPT_STRUCTURES[this.currentCategory];
+        const categoryData = this.getCategoryData();
         const requestedCategory = this.currentCategory;
 
         // Gom nội dung hiện có của từng trường
