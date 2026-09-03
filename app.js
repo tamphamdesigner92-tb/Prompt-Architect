@@ -1,8 +1,13 @@
 // --- CẤU HÌNH CÁC NHÀ CUNG CẤP AI ---
 const AI_CONFIG = {
     gemini: {
-        model: "gemini-2.5-flash",
-        buildEndpoint: (model, key) => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`,
+        // 09/2026: Google trả 404 cho gemini-2.5-flash ("no longer available to new users")
+        // và chỉ định dùng gemini-3.6-flash. Đổi tên model ở ĐÂY, không hardcode nơi khác.
+        model: "gemini-3.6-flash",
+        // Key gửi qua header "x-goog-api-key" (cách Google hướng dẫn hiện nay) thay vì
+        // nhét vào URL dạng ?key=... — tránh key lọt vào log, lịch sử duyệt và Referer.
+        // Đã xác minh CORS của Google cho phép header này từ http://localhost:8931.
+        buildEndpoint: model => `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
         rotateAfter: 10 // Luân phiên sang API key kế tiếp sau số lượt gợi ý thành công
     },
     ollama: {
@@ -82,6 +87,10 @@ const AppState = {
     // Ảnh tham chiếu (đầu vào tạm thời cho nhóm media): mảng dataURL JPEG, tối đa 3, KHÔNG lưu server
     referenceImages: [],
     MAX_REFERENCE_IMAGES: 3,
+
+    // Kết quả bấm "Kiểm tra" từng key: { <key>: { ok, short, text } }. Chỉ nằm trong bộ
+    // nhớ — key có thể bị Google thu hồi bất cứ lúc nào nên không lưu lại trạng thái cũ.
+    keyTestResults: {},
 
     // Cài đặt AI: Gemini là mặc định, gemma4 (Ollama) là lựa chọn phụ
     settings: {
@@ -280,7 +289,10 @@ const AppState = {
         // Thêm API key Gemini mới
         const addKey = () => {
             const input = document.getElementById("new-gemini-key");
-            const key = input.value.trim();
+            // Copy từ trang web/file .env hay kéo theo xuống dòng, khoảng trắng và dấu
+            // nháy — những ký tự này làm Google trả API_KEY_INVALID mà nhìn mắt thường
+            // không thấy gì bất thường.
+            const key = input.value.replace(/\s+/g, "").replace(/^["']|["']$/g, "");
             if (!key) {
                 this.showToast("Hãy dán API key vào ô trước khi thêm!", "error");
                 return;
@@ -293,9 +305,17 @@ const AppState = {
             this.saveSettings();
             this.renderKeyList();
             input.value = "";
-            this.showToast(`Đã thêm API key #${this.settings.geminiKeys.length}!`);
+
+            // Cảnh báo chứ KHÔNG chặn: dán nhầm cả dòng "GEMINI_API_KEY=..." là lỗi rất
+            // hay gặp, nhưng định dạng key của Google có thể đổi nên không dám chặn cứng.
+            if (key.length < 20 || key.includes("=") || key.includes(":")) {
+                this.showToast("Đã thêm, nhưng chuỗi này trông không giống API key (key của Google thường bắt đầu bằng \"AIza\"). Bấm Kiểm tra để chắc chắn.", "error", 6000);
+            } else {
+                this.showToast(`Đã thêm API key #${this.settings.geminiKeys.length}! Bấm Kiểm tra để xem key có dùng được không.`);
+            }
         };
         document.getElementById("btn-add-key").addEventListener("click", addKey);
+        document.getElementById("btn-test-keys").addEventListener("click", () => this.testAllKeys());
         document.getElementById("new-gemini-key").addEventListener("keydown", (e) => {
             if (e.key === "Enter") { e.preventDefault(); addKey(); }
         });
@@ -474,6 +494,22 @@ const AppState = {
                 label.appendChild(badge);
             }
 
+            // Kết quả kiểm tra gần nhất của key này (nếu đã bấm Kiểm tra)
+            const result = this.keyTestResults[key];
+            if (result) {
+                const state = document.createElement("span");
+                state.className = `key-state ${result.ok ? "is-ok" : "is-bad"}`;
+                state.textContent = result.short;
+                state.title = result.text; // Xem đầy đủ lý do khi rê chuột
+                label.appendChild(state);
+            }
+
+            const testBtn = document.createElement("button");
+            testBtn.className = "btn-test-key";
+            testBtn.textContent = "Kiểm tra";
+            testBtn.title = "Gọi thử Google để xem key này còn dùng được không";
+            testBtn.addEventListener("click", () => this.testSingleKey(key, testBtn));
+
             const deleteBtn = document.createElement("button");
             deleteBtn.className = "btn-delete-key";
             deleteBtn.title = "Xóa key này";
@@ -490,12 +526,72 @@ const AppState = {
                 this.showToast("Đã xóa API key.");
             });
 
+            const actions = document.createElement("div");
+            actions.className = "key-actions";
+            actions.appendChild(testBtn);
+            actions.appendChild(deleteBtn);
+
             item.appendChild(label);
-            item.appendChild(deleteBtn);
+            item.appendChild(actions);
             list.appendChild(item);
         });
 
         status.innerText = `Đang dùng key #${this.settings.activeKeyIndex + 1}/${this.settings.geminiKeys.length} — đã gợi ý ${this.settings.promptCount}/${AI_CONFIG.gemini.rotateAfter} lượt (đủ ${AI_CONFIG.gemini.rotateAfter} lượt sẽ tự chuyển key kế tiếp).`;
+    },
+
+    // --- KIỂM TRA KEY NGAY TRONG CÀI ĐẶT ---
+    // Không có nút này thì cách duy nhất để biết key sống hay chết là bấm "Gợi ý bằng AI"
+    // và chờ, mà lỗi khi đó lại gộp chung nhiều key nên không biết key nào hỏng.
+    async testSingleKey(key, button) {
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = "Đang kiểm tra...";
+
+        const result = await this.testGeminiKey(key);
+        this.keyTestResults[key] = result;
+
+        button.disabled = false;
+        button.textContent = originalText;
+        this.renderKeyList(); // Vẽ lại để hiện badge trạng thái
+        this.showToast(result.text, result.ok ? "success" : "error", result.ok ? 2500 : 9000);
+    },
+
+    async testAllKeys() {
+        const keys = this.settings.geminiKeys.slice();
+        if (keys.length === 0) {
+            this.showToast("Chưa có API key nào để kiểm tra!", "error");
+            return;
+        }
+
+        const button = document.getElementById("btn-test-keys");
+        button.disabled = true;
+        button.textContent = "Đang kiểm tra...";
+
+        // Chạy song song: mỗi key một request nhẹ, không sinh token
+        const results = await Promise.all(keys.map(key => this.testGeminiKey(key)));
+        keys.forEach((key, i) => { this.keyTestResults[key] = results[i]; });
+
+        button.disabled = false;
+        button.textContent = "Kiểm tra tất cả";
+        this.renderKeyList();
+
+        const okCount = results.filter(r => r.ok).length;
+        if (okCount === keys.length) {
+            this.showToast(`Cả ${keys.length} key đều dùng được.`);
+        } else {
+            // Các key hỏng thường cùng một lý do -> nêu lý do đầu tiên cho gọn
+            const firstBad = results.find(r => !r.ok);
+            this.showToast(`${okCount}/${keys.length} key dùng được.\n${firstBad.text}`, "error", 9000);
+        }
+    },
+
+    // Lỗi gọi AI nay dài 2 dòng (mã lỗi + việc cần làm) nên phải hiện lâu hơn toast thường
+    showAIError(provider, err) {
+        if (provider === "gemini") {
+            this.showToast(err.message, "error", 9000);
+        } else {
+            this.showToast(`Không kết nối được Ollama (${AI_CONFIG.ollama.model}). Kiểm tra Ollama đang chạy tại localhost:11434.`, "error");
+        }
     },
 
     // Điểm tra cứu DUY NHẤT cấu trúc của nhóm công việc đang chọn.
@@ -663,10 +759,7 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
             this.applySuggestions(suggestions, categoryData);
         } catch (err) {
             console.error("Lỗi gọi AI:", err);
-            const message = provider === "gemini"
-                ? "Gọi Gemini thất bại trên tất cả API key. Kiểm tra key trong Cài đặt và kết nối mạng."
-                : `Không kết nối được Ollama (${AI_CONFIG.ollama.model}). Kiểm tra Ollama đang chạy tại localhost:11434.`;
-            this.showToast(message, "error");
+            this.showAIError(provider, err);
         } finally {
             this.setSuggestingState(false);
         }
@@ -677,7 +770,7 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
     async callGemini(promptText, images = []) {
         const keys = this.settings.geminiKeys;
         const total = keys.length;
-        let lastError = null;
+        const failures = []; // Lý do hỏng của TỪNG key, để báo cho người dùng thay vì nuốt mất
 
         // Ghép ảnh tham chiếu (nếu có) vào parts dưới dạng inline_data để Gemini phân tích đa phương thức
         const parts = [{ text: promptText }];
@@ -689,9 +782,12 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
         for (let attempt = 0; attempt < total; attempt++) {
             const index = (this.settings.activeKeyIndex + attempt) % total;
             try {
-                const response = await fetch(AI_CONFIG.gemini.buildEndpoint(AI_CONFIG.gemini.model, keys[index]), {
+                const response = await fetch(AI_CONFIG.gemini.buildEndpoint(AI_CONFIG.gemini.model), {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-goog-api-key": keys[index]
+                    },
                     body: JSON.stringify({
                         contents: [{ parts }],
                         generationConfig: {
@@ -702,7 +798,13 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
                 });
 
                 if (!response.ok) {
-                    throw new Error(`Gemini trả về mã lỗi ${response.status}`);
+                    // Google LUÔN kèm lý do trong body — đọc ra thay vì chỉ báo mã số
+                    const info = await this.describeGeminiError(response);
+                    // Lỗi chung (sai model, lỗi máy chủ) thì thử key khác cũng vô ích
+                    if (!info.keySpecific) throw new Error(info.text);
+                    const keyError = new Error(info.text);
+                    keyError.keySpecific = true;
+                    throw keyError;
                 }
 
                 const data = await response.json();
@@ -711,7 +813,13 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
                     && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
 
                 if (!text) {
-                    throw new Error("Gemini không trả về nội dung");
+                    const finishReason = (data.candidates && data.candidates[0] && data.candidates[0].finishReason)
+                        || (data.promptFeedback && data.promptFeedback.blockReason)
+                        || "";
+                    throw new Error(
+                        `Gemini trả lời rỗng${finishReason ? ` (${finishReason})` : ""}.\n` +
+                        "Thường do bộ lọc an toàn chặn nội dung — hãy diễn đạt lại ý tưởng rồi thử lại."
+                    );
                 }
 
                 // Nếu phải nhảy sang key khác do key trước lỗi thì thông báo
@@ -734,12 +842,106 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
 
                 return text;
             } catch (err) {
-                lastError = err;
-                console.warn(`API key #${index + 1} lỗi:`, err.message);
+                // Lỗi mạng làm fetch NÉM (không có response để đọc) -> mô tả riêng
+                const detail = err instanceof TypeError
+                    ? "Không kết nối được tới Google (kiểm tra mạng, VPN hoặc tường lửa)."
+                    : err.message;
+                console.warn(`API key #${index + 1} lỗi:`, detail);
+
+                // Lỗi không thuộc về riêng key này (sai model, Google lỗi): báo luôn
+                if (err instanceof Error && err.keySpecific !== true && !(err instanceof TypeError)) {
+                    throw new Error(detail);
+                }
+                failures.push({ index, detail });
             }
         }
 
-        throw lastError || new Error("Tất cả API key đều không phản hồi");
+        // Nhiều key thường hỏng cùng một lý do (vd: chính sách key mới của Google) nên
+        // gộp lại thành một dòng; chỉ liệt kê từng key khi lý do thật sự khác nhau.
+        const distinct = [...new Set(failures.map(f => f.detail))];
+        const summary = distinct.length === 1
+            ? distinct[0]
+            : failures.map(f => `Key #${f.index + 1}: ${f.detail}`).join("\n");
+        throw new Error(`Gemini từ chối ${total === 1 ? "API key" : `cả ${total} API key`}.\n${summary}`);
+    },
+
+    // --- ĐỌC LÝ DO THẬT TỪ BODY LỖI CỦA GOOGLE ---
+    // Body lỗi có dạng { error: { code, message, status, details: [{ reason }] } }.
+    // Trả về câu tiếng Việt kèm nguyên văn thông báo của Google + việc cần làm tiếp.
+    async describeGeminiError(response) {
+        let payload = null;
+        try { payload = await response.json(); } catch (_) { /* body rỗng hoặc không phải JSON */ }
+
+        const error = (payload && payload.error) || {};
+        const googleMessage = (error.message || "").trim();
+        const status = error.status || "";
+        const reason = (error.details || []).map(d => d.reason).filter(Boolean)[0] || "";
+        const code = response.status;
+
+        // short = nhãn ngắn hiện trên badge cạnh key; hint = việc cần làm, hiện ở toast/tooltip
+        let hint;
+        let short;
+        if (code === 429 || status === "RESOURCE_EXHAUSTED") {
+            short = "Hết hạn mức";
+            hint = "Key đã hết hạn mức (quota). Chờ hạn mức đặt lại hoặc dùng key khác.";
+        } else if (reason === "API_KEY_INVALID") {
+            short = "Key không hợp lệ";
+            hint = "Key không hợp lệ (sai ký tự hoặc đã bị xoá). Hãy dán lại key từ aistudio.google.com/apikey.";
+        } else if (reason === "SERVICE_DISABLED" || /has not been used|is disabled/i.test(googleMessage)) {
+            short = "Chưa bật API";
+            hint = "Project của key này chưa bật Generative Language API. Bật API đó rồi thử lại.";
+        } else if (code === 403 || status === "PERMISSION_DENIED" || /restrict/i.test(googleMessage)) {
+            short = "Bị từ chối";
+            hint = "Google từ chối key, thường vì key chưa đặt hạn chế: từ 19/06/2026 các key ghi nhãn Unrestricted bị chặn. Mở aistudio.google.com/apikey → Add restrictions → Restrict to Gemini API only, hoặc tạo API key mới.";
+        } else if (code === 404) {
+            short = "Sai tên model";
+            hint = `Không tìm thấy model "${AI_CONFIG.gemini.model}" — kiểm tra lại tên model trong AI_CONFIG.`;
+        } else if (code >= 500) {
+            short = "Lỗi phía Google";
+            hint = "Lỗi từ phía máy chủ Google. Thử lại sau ít phút.";
+        } else {
+            short = `Lỗi ${code}`;
+            hint = "Mở Console (F12) để xem chi tiết.";
+        }
+
+        // Sai tên model hay lỗi máy chủ Google thì key nào cũng hỏng như nhau —
+        // đánh dấu để callGemini() dừng ngay thay vì thử lại lần lượt từng key.
+        const keySpecific = !(code === 404 || code >= 500);
+
+        const label = [code, status || reason].filter(Boolean).join(" ");
+        const text = `${label}${googleMessage ? ` — ${googleMessage}` : ""}\n${hint}`;
+        return { code, status, reason, googleMessage, hint, text, short, keySpecific };
+    },
+
+    // Kiểm tra nhanh một key còn dùng được không.
+    // PHẢI gọi đúng endpoint mà app dùng thật (generateContent). Trước đây chỉ đọc metadata
+    // model (`GET /models/<model>`) nên báo "Dùng được" trong khi generateContent lại trả
+    // 404 vì model không còn mở cho tài khoản mới — một lời xác nhận sai.
+    // Giới hạn 1 token đầu ra để phép thử gần như không tốn hạn mức.
+    async testGeminiKey(key) {
+        try {
+            const response = await fetch(AI_CONFIG.gemini.buildEndpoint(AI_CONFIG.gemini.model), {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": key
+                },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: "ping" }] }],
+                    generationConfig: { maxOutputTokens: 1 }
+                })
+            });
+            if (response.ok) return { ok: true, short: "Dùng được", text: "Key hoạt động bình thường." };
+
+            const info = await this.describeGeminiError(response);
+            return { ok: false, short: info.short, text: info.text };
+        } catch (_) {
+            return {
+                ok: false,
+                short: "Mất kết nối",
+                text: "Không kết nối được tới Google (kiểm tra mạng, VPN hoặc tường lửa)."
+            };
+        }
     },
 
     // --- GỌI OLLAMA LOCAL (gemma4) ---
@@ -1395,10 +1597,7 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
             this.applySuggestions(improved, categoryData);
         } catch (err) {
             console.error("Lỗi tối ưu prompt:", err);
-            const message = provider === "gemini"
-                ? "Gọi Gemini thất bại trên tất cả API key. Kiểm tra key trong Cài đặt và kết nối mạng."
-                : `Không kết nối được Ollama (${AI_CONFIG.ollama.model}). Kiểm tra Ollama đang chạy tại localhost:11434.`;
-            this.showToast(message, "error");
+            this.showAIError(provider, err);
         } finally {
             this.setSuggestingState(false);
         }
@@ -1439,7 +1638,7 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
     },
 
     // Tiện ích Toast thông báo trạng thái UX phản hồi nhanh
-    showToast(message, type = "success") {
+    showToast(message, type = "success", durationMs = 2500) {
         const container = document.getElementById("toast-container");
         const toast = document.createElement("div");
         toast.className = `toast ${type}`;
@@ -1450,7 +1649,7 @@ YÊU CẦU CHẤT LƯỢNG (bắt buộc tuân thủ):
         setTimeout(() => {
             toast.style.opacity = "0";
             setTimeout(() => toast.remove(), 300);
-        }, 2500);
+        }, durationMs);
     }
 };
 

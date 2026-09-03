@@ -240,7 +240,28 @@
                     <button id="btn-add-key" class="btn-primary">Thêm</button>
                 </div>
                 <ul id="gemini-key-list"></ul>
-                <span id="key-rotation-status" class="field-desc"></span>
+                <div class="key-toolbar">
+                    <button id="btn-test-keys" class="btn-secondary">Kiểm tra tất cả</button>
+                    <span id="key-rotation-status" class="field-desc"></span>
+                </div>
+
+                <!-- Từ 19/06/2026 Google chặn key "Unrestricted", tháng 9/2026 bỏ hẳn
+                     Standard key. Đây là nguyên nhân phổ biến nhất khiến key cũ chết
+                     hàng loạt, nên đặt hướng dẫn ngay cạnh chỗ nhập key. -->
+                <details class="key-help">
+                    <summary>Key báo lỗi hoặc bị từ chối? Xem cách xử lý</summary>
+                    <div class="key-help-body">
+                        <p>Google đã siết quy định về API key: từ <strong>19/06/2026</strong> các key gắn nhãn <em>Unrestricted</em> bị từ chối, và từ <strong>tháng 9/2026</strong> Standard key bị bỏ hẳn, thay bằng <em>auth key</em>.</p>
+                        <p><strong>Cách sửa nhanh (khoảng 30 giây mỗi key):</strong></p>
+                        <ol>
+                            <li>Mở <span class="mono">aistudio.google.com/apikey</span></li>
+                            <li>Tìm key đang gắn nhãn <em>Unrestricted</em>, rê chuột vào nhãn đó rồi bấm <em>Add restrictions</em></li>
+                            <li>Chọn <em>Restrict to Gemini API only</em> và xác nhận</li>
+                        </ol>
+                        <p>Hoặc bấm <em>Create API key</em> để tạo key mới (key mới tự động là auth key), rồi dán vào ô phía trên và xoá key cũ.</p>
+                        <p>Bấm <strong>Kiểm tra tất cả</strong> sau khi làm xong để xác nhận key đã dùng được.</p>
+                    </div>
+                </details>
             </div>
         </div>
     </div>

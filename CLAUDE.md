@@ -80,9 +80,24 @@ Quản lý toàn bộ state và hành vi. Các method chính:
 - **Tối ưu / Sửa lỗi Prompt** (`#btn-optimize`): `optimizePrompt()` gom giá trị field hiện có → `buildOptimizePrompt()` (yêu cầu AI phê bình & VIẾT LẠI, giữ nguyên ý định) → cùng luồng `callGemini/callOllama` → `applySuggestions()`. Cùng cơ chế chống race + ảnh tham chiếu như trên.
 
 ### Gemini API (mặc định)
-- Model `gemini-2.5-flash`, endpoint `generativelanguage.googleapis.com/v1beta/.../generateContent?key=...`, dùng `responseMimeType: "application/json"`.
+- Model **`gemini-3.6-flash`**, endpoint `generativelanguage.googleapis.com/v1beta/.../generateContent`, dùng `responseMimeType: "application/json"`. Tên model chỉ khai báo tại `AI_CONFIG.gemini.model` — **09/2026 Google đã trả 404 cho `gemini-2.5-flash`** ("no longer available to new users") và tự chỉ định `gemini-3.6-flash`; nếu lỗi 404 lặp lại thì đọc nguyên văn thông báo của Google để biết model kế tiếp.
+- **Key gửi bằng header `x-goog-api-key`**, KHÔNG nhét vào URL dạng `?key=...` (tránh key lọt vào log/lịch sử duyệt/Referer). Đã xác minh CORS của Google cho phép header này từ `http://localhost:8931`.
 - **Luân phiên nhiều API key** (`callGemini()`): người dùng thêm key trong modal Cài đặt (nút ⚙️ trên header). Sau mỗi **10 lượt thành công** tự chuyển key kế tiếp (`rotateAfter` trong `AI_CONFIG.gemini`); khi key lỗi/không phản hồi thì tự thử lần lượt các key còn lại trong cùng request. Chưa có key → mở modal Cài đặt và báo lỗi.
 - Modal Cài đặt: `#settings-modal` trong `index.html`, render danh sách key (che ký tự) qua `renderKeyList()`.
+
+#### Báo lỗi & kiểm tra key (đừng bỏ đi)
+Trước đây `callGemini()` chỉ ném `"Gemini trả về mã lỗi 403"` rồi caller thay tiếp bằng một câu chung chung — người dùng không bao giờ biết Google từ chối vì lý do gì, và không có cách nào biết key nào hỏng. Cơ chế hiện tại:
+
+- `describeGeminiError(response)` — đọc body lỗi (`error.message` / `error.status` / `error.details[].reason`), trả `{ code, status, reason, googleMessage, hint, text, short }`. `short` là nhãn ngắn tiếng Việt cho badge ("Bị từ chối", "Hết hạn mức"...), `text` là 2 dòng: nguyên văn của Google + việc cần làm. **Mọi nơi hiển thị lỗi Gemini đều đi qua hàm này.**
+- `callGemini()` gom lý do của TỪNG key vào `failures`; nếu mọi key hỏng cùng lý do thì gộp thành một dòng, khác nhau mới liệt kê từng key.
+- **Cờ `keySpecific`**: lỗi 404 (sai model) và 5xx (Google lỗi) giống hệt nhau với mọi key nên `callGemini()` **dừng ngay sau request đầu tiên**, không thử vòng qua cả 3 key vô ích. Còn 400/403/429 là lỗi của riêng từng key nên vẫn thử lần lượt hết.
+- Response 200 nhưng rỗng (bộ lọc an toàn chặn) cũng dừng ngay và nêu `finishReason`/`blockReason` thay vì câu "Gemini không trả về nội dung" cụt lủn.
+- `showAIError(provider, err)` — điểm hiển thị chung cho cả `requestAISuggestions()` và `optimizePrompt()`, toast lỗi Gemini kéo dài 9 giây vì thông điệp dài 2 dòng. `showToast()` có tham số thứ 3 `durationMs` (mặc định 2500) và `.toast` dùng `white-space: pre-line` để giữ xuống dòng.
+- `testGeminiKey(key)` / `testSingleKey()` / `testAllKeys()` — nút "Kiểm tra" ở mỗi dòng key và "Kiểm tra tất cả" (`#btn-test-keys`). **Phải gọi đúng endpoint app dùng thật (`POST ...:generateContent`, `maxOutputTokens: 1` cho rẻ), không được thay bằng `GET /models/<model>`**: bản đầu dùng GET metadata nên báo "Dùng được" trong khi generateContent lại trả 404 vì model không còn mở cho tài khoản mới — một lời xác nhận sai. Kết quả lưu ở `AppState.keyTestResults` — **chỉ trong bộ nhớ**, không ghi localStorage vì Google có thể thu hồi key bất cứ lúc nào.
+- `addKey` bỏ mọi khoảng trắng + dấu nháy bao ngoài (copy từ .env hay kéo theo xuống dòng vô hình → Google trả `API_KEY_INVALID`), và **cảnh báo chứ không chặn** khi chuỗi quá ngắn hoặc chứa `=`/`:`.
+
+#### Mốc chính sách API key của Google (nguyên nhân key cũ chết hàng loạt)
+Từ **19/06/2026** Gemini API từ chối key gắn nhãn *Unrestricted*; **tháng 9/2026** bỏ hẳn Standard key, thay bằng *auth key* gắn service account. Cách sửa: aistudio.google.com/apikey → *Add restrictions* → *Restrict to Gemini API only*, hoặc tạo key mới. Hướng dẫn này nằm sẵn trong modal Cài đặt ở khối `<details class="key-help">`.
 
 ### Ollama (lựa chọn phụ)
 - Endpoint `http://localhost:11434/api/generate`, model **`gemma4:e4b`** (lưu ý: đúng là `e4b`, không phải `eb4`). POST `{ model, prompt, format: "json", stream: false }`; khi có ảnh tham chiếu thì thêm mảng `images` (base64, đã bỏ tiền tố `data:`).

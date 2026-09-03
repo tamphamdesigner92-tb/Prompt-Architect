@@ -72,6 +72,10 @@
        Apple vì trên nền sáng nó chỉ đạt 3.0:1; #d70015 là biến thể accessible. */
     --danger-color: #d70015;
     --danger-tint: rgba(215, 0, 21, 0.12);
+    /* Trạng thái đạt (key kiểm tra OK). #34c759 của Apple chỉ đạt 1.9:1 trên nền sáng
+       nên dùng biến thể đậm hơn: #137333 đạt 5.56:1. */
+    --ok-color: #137333;
+    --ok-tint: rgba(19, 115, 51, 0.12);
 
     /* --- THANG CHỮ ---
        Trước đây có 10 giá trị font-size tuỳ ý, trong đó 0.8/0.85/0.9/0.95rem nằm
@@ -135,6 +139,8 @@ html[data-theme="evening"] {
     --scrim: rgba(0, 0, 0, 0.6);
     --danger-color: #ff6961;
     --danger-tint: rgba(255, 105, 97, 0.20);
+    --ok-color: #30d158;
+    --ok-tint: rgba(48, 209, 88, 0.20);
 }
 
 /* --- TOÀN CỤC --- */
@@ -856,6 +862,7 @@ code {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
     padding: 10px 14px;
     border-radius: 10px;
     background: var(--fill-4);
@@ -865,7 +872,16 @@ code {
     font-variant-numeric: tabular-nums;
 }
 
+.key-label {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+}
+
 .key-badge {
+    white-space: nowrap;
     background: var(--accent-color);
     color: white;
     font-size: var(--text-caption);
@@ -874,7 +890,114 @@ code {
     font-family: var(--font-stack);
     padding: 2px 8px;
     border-radius: 999px;
-    margin-left: 8px;
+}
+
+/* Nhóm nút bên phải mỗi dòng key (Kiểm tra + Xoá) */
+.key-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.btn-test-key {
+    background: transparent;
+    border: none;
+    color: var(--accent-color);
+    font-family: var(--font-stack);
+    font-size: var(--text-footnote);
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.btn-test-key:hover {
+    background: var(--accent-tint);
+}
+
+.btn-test-key:disabled {
+    color: var(--text-secondary);
+    cursor: default;
+}
+
+/* Badge kết quả kiểm tra, đứng cạnh nhãn key */
+.key-state {
+    white-space: nowrap;
+    font-family: var(--font-stack);
+    font-size: var(--text-caption);
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.key-state.is-ok {
+    color: var(--ok-color);
+    background: var(--ok-tint);
+}
+
+.key-state.is-bad {
+    color: var(--danger-color);
+    background: var(--danger-tint);
+}
+
+.key-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+/* Hướng dẫn xử lý khi key bị Google từ chối — cùng kiểu <details> với ngữ cảnh nâng cao */
+.key-help {
+    margin-top: 12px;
+    padding: 4px 14px;
+    border-radius: 12px;
+    background: var(--fill-4);
+    border: 1px solid var(--glass-border);
+}
+
+.key-help > summary {
+    cursor: pointer;
+    padding: 10px 0;
+    font-weight: 600;
+    font-size: var(--text-footnote);
+    list-style: none;
+    user-select: none;
+}
+
+.key-help > summary::-webkit-details-marker { display: none; }
+
+.key-help > summary::before {
+    content: "▸ ";
+    color: var(--text-secondary);
+}
+
+.key-help[open] > summary::before {
+    content: "▾ ";
+}
+
+.key-help-body {
+    padding: 0 0 12px;
+    font-size: var(--text-footnote);
+    color: var(--text-secondary);
+    line-height: 1.55;
+}
+
+.key-help-body p { margin: 0 0 8px; }
+
+.key-help-body ol {
+    margin: 0 0 8px;
+    padding-left: 20px;
+}
+
+.key-help-body strong { color: var(--text-primary); }
+
+.key-help-body .mono {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    color: var(--text-primary);
 }
 
 .btn-delete-key {
@@ -1054,6 +1177,10 @@ code {
 }
 
 .toast {
+    /* Thông báo lỗi của Google gồm 2 dòng (mã lỗi + việc cần làm) nên phải giữ
+       xuống dòng và chặn bề ngang, thay vì kéo dài hết màn hình. */
+    white-space: pre-line;
+    max-width: min(420px, calc(100vw - 48px));
     background: var(--glass-bg);
     backdrop-filter: saturate(180%) blur(20px);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
@@ -1064,6 +1191,12 @@ code {
     box-shadow: 0 4px 12px var(--shadow-color);
     font-weight: 500;
     animation: slideIn 0.3s ease-out forwards;
+}
+
+/* Trước đây class "error" không có style nào: toast lỗi trông y hệt toast thành công */
+.toast.error {
+    border-color: var(--danger-color);
+    box-shadow: 0 4px 12px var(--shadow-color), inset 3px 0 0 var(--danger-color);
 }
 
 /* --- ANIMATIONS TRỰC QUAN --- */
@@ -1370,6 +1503,8 @@ code {
 .menu-item:focus-visible,
 .saved-tab-btn:focus-visible,
 .btn-delete-key:focus-visible,
+.btn-test-key:focus-visible,
+.key-help > summary:focus-visible,
 .reference-remove:focus-visible,
 .saved-thumb-clickable:focus-visible,
 .advanced-context > summary:focus-visible,
